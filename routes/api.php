@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AdminAuthController;
-use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\V1\ProductController;
 
 Route::post('/v1/admin/login', [AdminAuthController::class, 'login'])
     ->middleware(['throttle:admin-login', 'admin.secure']);
@@ -24,5 +24,5 @@ Route::prefix('v1')->group(function () {
 
     // Route API Produk kamu (Tanpa login/Public)
     Route::get('/products', [ProductController::class, 'index']);
-    Route::get('/products/{slug}', [ProductController::class, 'show']);
+    Route::get('/products/{product}', [ProductController::class, 'show']);
 });

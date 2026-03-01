@@ -19,6 +19,7 @@ class Product extends Model
         'category', 
         'brand', 
         'description', 
+        'stock',
         'trade_in',
         'inventory',      // JSONB: Tempat stok & harga utama
         'photos',         // JSONB: Array text
