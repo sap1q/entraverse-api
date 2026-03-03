@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Pricing\PricingCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -65,6 +66,7 @@ class ProductResource extends JsonResource
             ->values();
 
         $mainImage = $normalizedPhotos->firstWhere('is_primary', true) ?? $normalizedPhotos->first();
+        $priceBreakdown = app(PricingCalculator::class)->fromProduct($this->resource)->toArray();
 
         return [
             'id' => (string) $this->id,
@@ -83,6 +85,7 @@ class ProductResource extends JsonResource
                 'total_stock' => $totalStock,
                 ...$inventory,
             ],
+            'price_breakdown' => $priceBreakdown,
             'variants' => $variants,
             'variant_pricing' => $normalizedPricing->all(),
             'photos' => $normalizedPhotos->all(),

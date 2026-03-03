@@ -9,11 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ForceJsonResponse
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $request->headers->set('Accept', 'application/json');
@@ -32,7 +27,13 @@ class ForceJsonResponse
 
         if ($response->getStatusCode() >= 400) {
             return response()->json([
+                'success' => false,
                 'message' => Response::$statusTexts[$response->getStatusCode()] ?? 'Request failed',
+                'errors' => null,
+                'meta' => [
+                    'timestamp' => now()->toISOString(),
+                    'version' => 'v1',
+                ],
             ], $response->getStatusCode());
         }
 

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class LoginRequest extends FormRequest
+class RegisterRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,9 +20,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:6', 'max:255'],
-            'remember' => ['nullable', 'boolean'],
+            'name' => ['required', 'string', 'min:2', 'max:100'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('admins', 'email')],
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+            'role' => ['nullable', Rule::in(['superadmin', 'staff', 'editor'])],
         ];
     }
 

@@ -15,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->validateCsrfTokens(except: ['api/v1/admin/login']);
+        $middleware->validateCsrfTokens(except: [
+            'api/v1/admin/login',
+            'api/v1/*',
+        ]);
 
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
@@ -24,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'admin.secure' => \App\Http\Middleware\AdminSecureHeader::class,
         ]);
 
@@ -33,7 +37,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
+                    'success' => false,
                     'message' => 'Unauthenticated.',
+                    'errors' => null,
+                    'meta' => [
+                        'timestamp' => now()->toISOString(),
+                        'version' => 'v1',
+                    ],
                 ], 401);
             }
 
