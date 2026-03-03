@@ -74,6 +74,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'brand' => $this->brand,
             'category' => $this->category,
+            'category_id' => $this->category_id ? (string) $this->category_id : null,
             'spu' => $this->spu,
             'price' => $price,
             'formatted_price' => 'Rp ' . number_format($price, 0, ',', '.'),

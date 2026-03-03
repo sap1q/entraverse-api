@@ -18,6 +18,7 @@ class UpdateProductRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
             'brand' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
             'category' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
+            'category_id' => ['sometimes', 'nullable', 'uuid', 'exists:categories,id'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000', new NoHtml],
             'spu' => ['sometimes', 'nullable', 'string', 'max:50', new NoHtml],
             'trade_in' => ['sometimes', 'nullable', 'boolean'],

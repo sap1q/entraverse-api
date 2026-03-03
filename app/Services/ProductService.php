@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +19,7 @@ class ProductService
         $driver = DB::connection()->getDriverName();
 
         return Product::query()
+            ->when($filters['category_id'] ?? null, fn (Builder $query, string $categoryId) => $query->where('category_id', $categoryId))
             ->when($filters['brand'] ?? null, fn (Builder $query, string $brand) => $query->where('brand', $brand))
             ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
             ->when($search !== '', function (Builder $query) use ($driver, $search) {
@@ -86,10 +88,17 @@ class ProductService
             $product?->stock
         );
         $inventory['total_stock'] = $calculatedStock;
+        $categoryId = (string) ($validated['category_id'] ?? $product?->category_id ?? '');
+        $categoryName = $this->cleanText((string) ($validated['category'] ?? $product?->category ?? ''));
+
+        if ($categoryName === '' && $categoryId !== '') {
+            $categoryName = (string) (Category::query()->where('id', $categoryId)->value('name') ?? '');
+        }
 
         return [
             'name' => $this->cleanText((string) ($validated['name'] ?? $product?->name ?? '')),
-            'category' => $this->cleanText((string) ($validated['category'] ?? $product?->category ?? '')),
+            'category' => $categoryName,
+            'category_id' => $categoryId !== '' ? $categoryId : null,
             'brand' => $this->cleanText((string) ($validated['brand'] ?? $product?->brand ?? '')),
             'description' => $this->cleanText((string) ($validated['description'] ?? $product?->description ?? '')),
             'trade_in' => (bool) ($validated['trade_in'] ?? $product?->trade_in ?? false),

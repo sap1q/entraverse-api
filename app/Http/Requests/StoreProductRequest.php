@@ -18,6 +18,7 @@ class StoreProductRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new NoHtml],
             'brand' => ['required', 'string', 'max:255', new NoHtml],
             'category' => ['required', 'string', 'max:255', new NoHtml],
+            'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:5000', new NoHtml],
             'spu' => ['nullable', 'string', 'max:50', new NoHtml],
             'trade_in' => ['nullable', 'boolean'],
