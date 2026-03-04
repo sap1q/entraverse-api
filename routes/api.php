@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\SalesOrderController;
+use App\Http\Controllers\Api\V1\StockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -39,10 +41,24 @@ Route::prefix('v1')->group(function (): void {
             Route::get('user', fn (Request $request) => $request->user())->name('user');
 
             Route::prefix('products')->name('products.')->group(function (): void {
+                Route::get('{product}', [ProductController::class, 'showAdmin'])->name('show');
                 Route::post('/', [ProductController::class, 'store'])->name('store');
                 Route::put('{product}', [ProductController::class, 'update'])->name('update');
                 Route::patch('{product}', [ProductController::class, 'update'])->name('patch');
                 Route::delete('{product}', [ProductController::class, 'destroy'])->name('destroy');
+            });
+
+            Route::prefix('stocks')->name('stocks.')->group(function (): void {
+                Route::get('/', [StockController::class, 'index'])->name('index');
+                Route::get('/mutations', [StockController::class, 'mutations'])->name('mutations');
+                Route::post('/adjust', [StockController::class, 'adjust'])->name('adjust');
+            });
+
+            Route::prefix('sales-orders')->name('sales-orders.')->group(function (): void {
+                Route::get('/', [SalesOrderController::class, 'index'])->name('index');
+                Route::get('/catalog', [SalesOrderController::class, 'catalog'])->name('catalog');
+                Route::get('/{orderId}', [SalesOrderController::class, 'show'])->name('show');
+                Route::post('/', [SalesOrderController::class, 'store'])->name('store');
             });
 
             Route::prefix('categories')->name('categories.')->group(function (): void {

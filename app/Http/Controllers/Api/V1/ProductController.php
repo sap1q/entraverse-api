@@ -25,6 +25,11 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
+    public function showAdmin(Product $product)
+    {
+        return new ProductResource($product);
+    }
+
     public function store(StoreProductRequest $request)
     {
         $product = $this->service->store($request->validated(), $request->file('images', []));
@@ -36,5 +41,15 @@ class ProductController extends Controller
         return new ProductResource(
             $this->service->update($product, $request->validated(), $request->file('images', []))
         );
+    }
+
+    public function destroy(Product $product)
+    {
+        $product->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product deleted successfully',
+        ]);
     }
 }

@@ -72,6 +72,16 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function stockMutations(): HasMany
+    {
+        return $this->hasMany(StockMutation::class);
+    }
+
+    public function salesOrderItems(): HasMany
+    {
+        return $this->hasMany(SalesOrderItem::class);
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

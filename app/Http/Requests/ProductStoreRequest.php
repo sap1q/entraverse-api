@@ -26,7 +26,7 @@ class ProductStoreRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new NoHtml],
             'brand' => ['required', 'string', 'max:255', new NoHtml],
             'category' => ['nullable', 'string', 'max:255', new NoHtml],
-            'description' => ['nullable', 'string', 'max:5000', new NoHtml],
+            'description' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
             'stock' => ['required', 'integer', 'min:0', 'max:10000000'],
             'weight' => ['nullable', 'integer', 'min:0', 'max:10000000'],
@@ -34,7 +34,7 @@ class ProductStoreRequest extends FormRequest
             'product_status' => ['nullable', 'in:active,inactive,draft'],
             'variants' => ['nullable', 'array'],
             'variant_pricing' => ['nullable', 'array'],
-            'images' => ['nullable', 'array', 'max:8'],
+            'images' => ['nullable', 'array', 'max:5'],
             'images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }

@@ -12,6 +12,9 @@ use Illuminate\Support\Str;
 
 class ProductService
 {
+    private const MAX_PRODUCT_PHOTOS = 5;
+    private const DEFAULT_WAREHOUSE = 'Gudang Utama';
+
     public function paginate(array $filters): LengthAwarePaginator
     {
         $search = trim((string) ($filters['search'] ?? ''));
@@ -100,7 +103,7 @@ class ProductService
             'category' => $categoryName,
             'category_id' => $categoryId !== '' ? $categoryId : null,
             'brand' => $this->cleanText((string) ($validated['brand'] ?? $product?->brand ?? '')),
-            'description' => $this->cleanText((string) ($validated['description'] ?? $product?->description ?? '')),
+            'description' => $this->cleanDescription((string) ($validated['description'] ?? $product?->description ?? '')),
             'trade_in' => (bool) ($validated['trade_in'] ?? $product?->trade_in ?? false),
             'inventory' => $inventory,
             'variants' => $this->normalizeArray($validated['variants'] ?? ($product?->variants ?? [])),
@@ -125,11 +128,43 @@ class ProductService
             }
 
             $stock = max(0, (int) ($item['stock'] ?? 0));
-            $item['stock'] = $stock;
+            $warehouse = trim((string) ($item['warehouse'] ?? ''));
+            $warehouse = $warehouse !== '' ? $warehouse : self::DEFAULT_WAREHOUSE;
+            $warehouseStock = $this->normalizeWarehouseStock(
+                $item['warehouse_stock'] ?? null,
+                $warehouse,
+                $stock
+            );
+
+            $item['warehouse_stock'] = $warehouseStock;
+            $item['warehouse'] = (string) (array_key_first($warehouseStock) ?? $warehouse);
+            $item['stock'] = (int) array_sum($warehouseStock);
             $item['purchase_price'] = (float) ($item['purchase_price'] ?? 0);
             $item['purchase_price_idr'] = (float) ($item['purchase_price_idr'] ?? 0);
 
             $normalized[] = $this->normalizeArray($item);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeWarehouseStock(mixed $warehouseStock, string $fallbackWarehouse, int $fallbackStock): array
+    {
+        $normalized = [];
+
+        if (is_array($warehouseStock)) {
+            foreach ($warehouseStock as $warehouse => $qty) {
+                $warehouseName = trim(is_string($warehouse) ? $warehouse : '');
+                if ($warehouseName === '') {
+                    continue;
+                }
+
+                $normalized[$warehouseName] = max(0, (int) $qty);
+            }
+        }
+
+        if ($normalized === []) {
+            $normalized[$fallbackWarehouse] = max(0, $fallbackStock);
         }
 
         return $normalized;
@@ -156,33 +191,154 @@ class ProductService
     /**
      * @param  array<int, UploadedFile>  $uploadedImages
      * @param  array<int|string, mixed>  $existingPhotos
-     * @return array<int, array<string, mixed>|string>
+     * @return array<int, array<string, mixed>>
      */
     private function resolvePhotos(mixed $photos, array $uploadedImages, array $existingPhotos): array
     {
-        if ($uploadedImages !== []) {
-            $mapped = [];
-            foreach ($uploadedImages as $index => $file) {
-                if (! $file instanceof UploadedFile) {
-                    continue;
-                }
+        $uploadMarkerPrefix = '__UPLOAD__:';
 
-                $path = $file->store('products', 'public');
-                $mapped[] = [
-                    'url' => '/storage/' . ltrim($path, '/'),
+        $isValidUrl = static function (string $value): bool {
+            $trimmed = trim($value);
+            if ($trimmed === '') return false;
+            return !str_starts_with($trimmed, 'blob:') && !str_starts_with($trimmed, 'data:');
+        };
+
+        $normalizePhotoItem = static function (mixed $photo) use ($isValidUrl): ?array {
+            if (is_string($photo)) {
+                $trimmed = trim($photo);
+                if (! $isValidUrl($trimmed)) return null;
+                return [
+                    'url' => $trimmed,
                     'alt' => null,
-                    'is_primary' => $index === 0,
+                    'is_primary' => false,
                 ];
             }
 
-            return $mapped;
+            if (is_array($photo)) {
+                $url = trim((string) ($photo['url'] ?? ''));
+                if (! $isValidUrl($url)) return null;
+                return [
+                    'url' => $url,
+                    'alt' => is_string($photo['alt'] ?? null) ? $photo['alt'] : null,
+                    'is_primary' => false,
+                ];
+            }
+
+            return null;
+        };
+
+        $sanitizePhotos = function (array $items): array {
+            return array_values(array_filter($items, function (mixed $photo): bool {
+                if (is_string($photo)) {
+                    $trimmed = trim($photo);
+                    if ($trimmed === '') return false;
+                    return !str_starts_with($trimmed, 'blob:') && !str_starts_with($trimmed, 'data:');
+                }
+
+                if (is_array($photo)) {
+                    $url = trim((string) ($photo['url'] ?? ''));
+                    if ($url === '') return false;
+                    return !str_starts_with($url, 'blob:') && !str_starts_with($url, 'data:');
+                }
+
+                return false;
+            }));
+        };
+
+        $mappedUploads = [];
+        foreach ($uploadedImages as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $path = $file->store('products', 'public');
+            $mappedUploads[] = [
+                'url' => '/storage/' . ltrim($path, '/'),
+                'alt' => null,
+                'is_primary' => false,
+            ];
         }
 
+        // New synchronized flow: `photos` can contain ordered placeholders "__UPLOAD__:<n>".
         if (is_array($photos)) {
-            return $this->normalizeArray($photos);
+            $orderedPhotos = [];
+            $uploadCursor = 0;
+
+            foreach ($this->normalizeArray($photos) as $photo) {
+                if (is_string($photo) && str_starts_with($photo, $uploadMarkerPrefix)) {
+                    if (isset($mappedUploads[$uploadCursor])) {
+                        $orderedPhotos[] = $mappedUploads[$uploadCursor];
+                        $uploadCursor++;
+                    }
+                    continue;
+                }
+
+                $normalized = $normalizePhotoItem($photo);
+                if ($normalized !== null) {
+                    $orderedPhotos[] = $normalized;
+                }
+            }
+
+            // Backward compatibility: append remaining uploaded files if marker not provided for all.
+            while (isset($mappedUploads[$uploadCursor])) {
+                $orderedPhotos[] = $mappedUploads[$uploadCursor];
+                $uploadCursor++;
+            }
+
+            return $this->finalizePhotos($orderedPhotos);
         }
 
-        return $this->normalizeArray($existingPhotos);
+        $basePhotos = $sanitizePhotos($this->normalizeArray($existingPhotos));
+        $normalizedBase = array_values(array_filter(array_map($normalizePhotoItem, $basePhotos)));
+        $merged = array_values(array_merge($normalizedBase, $mappedUploads));
+
+        return $this->finalizePhotos($merged);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function finalizePhotos(array $items): array
+    {
+        $result = [];
+        $seen = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $url = trim((string) ($item['url'] ?? ''));
+            if ($url === '' || str_starts_with($url, 'blob:') || str_starts_with($url, 'data:')) {
+                continue;
+            }
+
+            $dedupeKey = strtolower($url);
+            if (isset($seen[$dedupeKey])) {
+                continue;
+            }
+
+            $seen[$dedupeKey] = true;
+            $result[] = [
+                'url' => $url,
+                'alt' => is_string($item['alt'] ?? null) ? $item['alt'] : null,
+                'is_primary' => false,
+            ];
+
+            if (count($result) >= self::MAX_PRODUCT_PHOTOS) {
+                break;
+            }
+        }
+
+        return array_values(array_map(
+            fn (array $photo, int $index) => [
+                ...$photo,
+                'is_primary' => $index === 0,
+            ],
+            $result,
+            array_keys($result)
+        ));
     }
 
     private function normalizeArray(mixed $value): array
@@ -208,6 +364,40 @@ class ProductService
     private function cleanText(string $value): string
     {
         return trim(strip_tags($value));
+    }
+
+    private function cleanDescription(string $value): ?string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $withoutDangerousTags = preg_replace(
+            '/<(script|style|iframe|object|embed|form|input|button|textarea|select|option|link|meta)[^>]*>.*?<\/\1>/is',
+            '',
+            $trimmed
+        );
+
+        $safeHtml = preg_replace(
+            '/\son\w+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i',
+            '',
+            $withoutDangerousTags ?? $trimmed
+        );
+
+        $safeHtml = preg_replace(
+            '/\s(href|src)\s*=\s*("|\')\s*javascript:[^"\']*("|\')/i',
+            '',
+            $safeHtml ?? ''
+        );
+
+        $allowedTags = '<p><br><strong><b><em><i><u><ul><ol><li><h2><h3><blockquote>';
+        $sanitized = strip_tags($safeHtml ?? '', $allowedTags);
+        $sanitized = preg_replace('/(?:<p>\s*<\/p>\s*)+/i', '', $sanitized ?? '');
+        $sanitized = preg_replace('/(<br\s*\/?>\s*){3,}/i', '<br><br>', $sanitized ?? '');
+        $sanitized = trim((string) $sanitized);
+
+        return $sanitized !== '' ? $sanitized : null;
     }
 
     private function generateSpu(string $brand): string

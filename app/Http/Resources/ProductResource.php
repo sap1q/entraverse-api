@@ -21,7 +21,30 @@ class ProductResource extends JsonResource
         $normalizedPricing = collect($variantPricingItems)
             ->filter(fn ($item) => is_array($item))
             ->map(function (array $item) {
-                $item['stock'] = (int) ($item['stock'] ?? 0);
+                $warehouseStock = [];
+                if (is_array($item['warehouse_stock'] ?? null)) {
+                    foreach ($item['warehouse_stock'] as $warehouse => $qty) {
+                        $warehouseName = trim(is_string($warehouse) ? $warehouse : '');
+                        if ($warehouseName === '') {
+                            continue;
+                        }
+
+                        $warehouseStock[$warehouseName] = (int) $qty;
+                    }
+                }
+
+                if ($warehouseStock === []) {
+                    $fallbackWarehouse = trim((string) ($item['warehouse'] ?? 'Gudang Utama'));
+                    if ($fallbackWarehouse === '') {
+                        $fallbackWarehouse = 'Gudang Utama';
+                    }
+
+                    $warehouseStock[$fallbackWarehouse] = (int) ($item['stock'] ?? 0);
+                }
+
+                $item['warehouse_stock'] = $warehouseStock;
+                $item['warehouse'] = (string) (array_key_first($warehouseStock) ?? 'Gudang Utama');
+                $item['stock'] = (int) collect($warehouseStock)->sum();
                 $item['purchase_price'] = (float) ($item['purchase_price'] ?? 0);
                 $item['purchase_price_idr'] = (float) ($item['purchase_price_idr'] ?? 0);
                 return $item;
@@ -54,7 +77,16 @@ class ProductResource extends JsonResource
                     return null;
                 }
 
-                $absoluteUrl = Str::startsWith($url, ['http://', 'https://']) ? $url : url($url);
+                $normalizedUrl = trim($url);
+                if (! Str::startsWith($normalizedUrl, ['http://', 'https://', '/'])) {
+                    $normalizedUrl = '/storage/products/' . ltrim($normalizedUrl, '/');
+                } elseif (Str::startsWith($normalizedUrl, 'storage/')) {
+                    $normalizedUrl = '/' . ltrim($normalizedUrl, '/');
+                }
+
+                $absoluteUrl = Str::startsWith($normalizedUrl, ['http://', 'https://'])
+                    ? $normalizedUrl
+                    : url($normalizedUrl);
 
                 return [
                     'url' => $absoluteUrl,
@@ -63,6 +95,7 @@ class ProductResource extends JsonResource
                 ];
             })
             ->filter()
+            ->take(5)
             ->values();
 
         $mainImage = $normalizedPhotos->firstWhere('is_primary', true) ?? $normalizedPhotos->first();
@@ -72,9 +105,11 @@ class ProductResource extends JsonResource
             'id' => (string) $this->id,
             'uuid' => (string) $this->id,
             'name' => $this->name,
+            'slug' => Str::slug((string) $this->name),
             'brand' => $this->brand,
             'category' => $this->category,
             'category_id' => $this->category_id ? (string) $this->category_id : null,
+            'description' => $this->description,
             'spu' => $this->spu,
             'price' => $price,
             'formatted_price' => 'Rp ' . number_format($price, 0, ',', '.'),

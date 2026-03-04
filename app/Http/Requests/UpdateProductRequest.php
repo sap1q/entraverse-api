@@ -19,7 +19,7 @@ class UpdateProductRequest extends FormRequest
             'brand' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
             'category' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
             'category_id' => ['sometimes', 'nullable', 'uuid', 'exists:categories,id'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:5000', new NoHtml],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'spu' => ['sometimes', 'nullable', 'string', 'max:50', new NoHtml],
             'trade_in' => ['sometimes', 'nullable', 'boolean'],
             'product_status' => ['sometimes', 'nullable', 'in:active,pending_approval,inactive,archived'],
@@ -35,14 +35,17 @@ class UpdateProductRequest extends FormRequest
 
             'variant_pricing' => ['sometimes', 'nullable', 'array'],
             'variant_pricing.*.label' => ['nullable', 'string', 'max:255', new NoHtml],
+            'variant_pricing.*.warehouse' => ['nullable', 'string', 'max:120', new NoHtml],
+            'variant_pricing.*.warehouse_stock' => ['nullable', 'array'],
+            'variant_pricing.*.warehouse_stock.*' => ['nullable', 'integer', 'min:0'],
             'variant_pricing.*.stock' => ['nullable', 'integer', 'min:0'],
             'variant_pricing.*.purchase_price' => ['nullable', 'numeric', 'min:0'],
             'variant_pricing.*.purchase_price_idr' => ['nullable', 'numeric', 'min:0'],
 
-            'photos' => ['sometimes', 'nullable', 'array'],
+            'photos' => ['sometimes', 'nullable', 'array', 'max:5'],
             'photos.*' => ['string', 'max:2048'],
 
-            'images' => ['sometimes', 'nullable', 'array', 'max:8'],
+            'images' => ['sometimes', 'nullable', 'array', 'max:5'],
             'images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
 
             // Backward compatibility fields.
