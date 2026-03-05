@@ -16,7 +16,16 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        return ProductResource::collection($this->service->paginate($request->query()));
+        $filters = $request->query();
+
+        // Scope Master Produk: hanya produk aktif dan tidak gagal sinkronisasi marketplace/Jurnal.
+        if ($request->boolean('only_active')) {
+            $filters['status'] = $filters['status'] ?? $filters['product_status'] ?? 'active';
+            $filters['exclude_failed_sync'] = $filters['exclude_failed_sync'] ?? true;
+            $filters['only_sync_activated'] = $filters['only_sync_activated'] ?? true;
+        }
+
+        return ProductResource::collection($this->service->paginate($filters));
     }
 
     public function show(Product $product)

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Auth\LogoutController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Integration\JurnalSyncController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\SalesOrderController;
 use App\Http\Controllers\Api\V1\StockController;
@@ -72,5 +73,18 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('check/name', [CategoryController::class, 'checkName'])->name('check-name');
             });
         });
+    });
+});
+
+Route::prefix('v1/integrations/jurnal')->name('integrations.jurnal.')->group(function (): void {
+    Route::post('webhook', [JurnalSyncController::class, 'webhook'])->name('webhook');
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('products/{id}/sync', [JurnalSyncController::class, 'syncProduct'])->name('products.sync');
+        Route::post('products/{id}/archive', [JurnalSyncController::class, 'archiveProduct'])->name('products.archive');
+        Route::post('products/{id}/unarchive', [JurnalSyncController::class, 'unarchiveProduct'])->name('products.unarchive');
+        Route::post('products/import', [JurnalSyncController::class, 'importJurnalProducts'])->name('products.import');
+        Route::post('products/sync-all', [JurnalSyncController::class, 'syncAllProducts'])->name('products.sync-all');
+        Route::get('products', [JurnalSyncController::class, 'getJurnalProducts'])->name('products.index');
     });
 });

@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -14,14 +14,15 @@ class Product extends Model
 
     // UUID Setup
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
-        'name', 
+        'name',
         'category',
         'category_id',
-        'brand', 
-        'description', 
+        'brand',
+        'description',
         'stock',
         'trade_in',
         'inventory',      // JSONB: Tempat stok & harga utama
@@ -29,10 +30,13 @@ class Product extends Model
         'variants',       // JSONB: Array opsi (warna, size, dll)
         'variant_pricing', // JSONB: Harga spesifik per varian
         'mekari_status',  // JSONB: Status sinkronisasi manual/auto
+        'jurnal_id',
+        'jurnal_metadata',
+        'last_synced_at',
         'spu',            // Text: Kode unik produk
         'product_status', // Text: active, pending_approval, inactive
-        'created_by', 
-        'updated_by'
+        'created_by',
+        'updated_by',
     ];
 
     // Default value agar tidak null saat insert
@@ -53,7 +57,9 @@ class Product extends Model
         'variants' => 'array',
         'variant_pricing' => 'array',
         'mekari_status' => 'array',
+        'jurnal_metadata' => 'array',
         'trade_in' => 'boolean',
+        'last_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

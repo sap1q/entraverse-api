@@ -5,16 +5,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Category extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'categories';
-    
+
     protected $fillable = [
         'name',
         'icon',
@@ -22,7 +23,7 @@ class Category extends Model
         'icon_url',
         'fees',
         'program_garansi',
-        'min_margin'
+        'min_margin',
     ];
 
     protected $casts = [
@@ -31,16 +32,16 @@ class Category extends Model
         'min_margin' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
     ];
 
     protected $appends = [
         'icon',
-        'formatted_fees'
+        'formatted_fees',
     ];
 
     protected $hidden = [
-        'deleted_at'
+        'deleted_at',
     ];
 
     /**
@@ -63,7 +64,7 @@ class Category extends Model
             'marketplace' => $this->getFeeMarketplace(),
             'shopee' => $this->getFeeShopee(),
             'entraverse' => $this->getFeeEntraverse(),
-            'tokopedia_tiktok' => $this->getFeeTokopediaTiktok()
+            'tokopedia_tiktok' => $this->getFeeTokopediaTiktok(),
         ];
     }
 
@@ -73,7 +74,7 @@ class Category extends Model
     public function getFeeMarketplace(): ?array
     {
         return $this->fees['marketplace'] ?? [
-            'components' => []
+            'components' => [],
         ];
     }
 
@@ -83,7 +84,7 @@ class Category extends Model
     public function getFeeShopee(): ?array
     {
         return $this->fees['shopee'] ?? [
-            'components' => []
+            'components' => [],
         ];
     }
 
@@ -93,7 +94,7 @@ class Category extends Model
     public function getFeeEntraverse(): ?array
     {
         return $this->fees['entraverse'] ?? [
-            'components' => []
+            'components' => [],
         ];
     }
 
@@ -103,7 +104,7 @@ class Category extends Model
     public function getFeeTokopediaTiktok(): ?array
     {
         return $this->fees['tokopedia_tiktok'] ?? [
-            'components' => []
+            'components' => [],
         ];
     }
 
@@ -112,8 +113,9 @@ class Category extends Model
      */
     public function storeSvgFile($file, $path = 'categories/icons'): string
     {
-        $filename = $this->id . '-' . time() . '.svg';
+        $filename = $this->id.'-'.time().'.svg';
         $filepath = $file->storeAs($path, $filename, 'public');
+
         return Storage::url($filepath);
     }
 
@@ -127,6 +129,7 @@ class Category extends Model
         $this->icon = $path;
         $this->icon_url = $path;
         $this->icon_svg = null;
+
         return $this;
     }
 
@@ -139,6 +142,7 @@ class Category extends Model
         $this->icon = $svgContent;
         $this->icon_svg = $svgContent;
         $this->icon_url = null;
+
         return $this;
     }
 
@@ -154,6 +158,7 @@ class Category extends Model
                 return Storage::disk('public')->delete($path);
             }
         }
+
         return false;
     }
 
@@ -174,7 +179,7 @@ class Category extends Model
                 return Storage::disk('public')->get($path);
             }
         }
-        
+
         return null;
     }
 
@@ -185,11 +190,11 @@ class Category extends Model
     {
         $fees = $this->fees[$platform]['components'] ?? [];
         $total = 0;
-        
+
         foreach ($fees as $component) {
             $total += $component['value'] ?? 0;
         }
-        
+
         return $total;
     }
 
@@ -198,7 +203,7 @@ class Category extends Model
      */
     public function hasFees(): bool
     {
-        return !empty($this->fees);
+        return ! empty($this->fees);
     }
 
     /**
@@ -238,7 +243,7 @@ class Category extends Model
                     'marketplace' => ['components' => []],
                     'shopee' => ['components' => []],
                     'entraverse' => ['components' => []],
-                    'tokopedia_tiktok' => ['components' => []]
+                    'tokopedia_tiktok' => ['components' => []],
                 ];
             }
         });

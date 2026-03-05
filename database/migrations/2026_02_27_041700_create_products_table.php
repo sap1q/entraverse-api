@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -20,12 +20,12 @@ return new class extends Migration
             $table->string('brand', 100)->nullable();
             $table->text('description')->nullable();
             $table->boolean('trade_in')->default(false);
-            
+
             // JSONB Columns
             $table->jsonb('inventory')->default(json_encode([
                 'price' => 0,
                 'total_stock' => 0,
-                'weight' => 0
+                'weight' => 0,
             ]));
             $table->jsonb('photos')->default(json_encode([]));
             $table->jsonb('variants')->default(json_encode([]));
@@ -33,12 +33,12 @@ return new class extends Migration
             $table->jsonb('mekari_status')->default(json_encode([
                 'sync_status' => 'pending',
                 'last_sync' => null,
-                'mekari_id' => null
+                'mekari_id' => null,
             ]));
-            
+
             $table->string('spu', 50)->nullable()->unique();
             $table->string('product_status', 20)->default('active');
-            
+
             $table->uuid('created_by')->nullable();
             $table->uuid('updated_by')->nullable();
             $table->timestamps();
@@ -58,17 +58,19 @@ return new class extends Migration
             $table->foreign('updated_by')->references('id')->on('users')->nullOnDelete();
         });
 
-        // JSONB Indexes - PAKAI DB::statement() TERPISAH
-        DB::statement('CREATE INDEX idx_products_price ON products ((inventory->>\'price\'))');
-        DB::statement('CREATE INDEX idx_products_stock ON products ((inventory->>\'total_stock\'))');
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // JSONB indexes
+            DB::statement('CREATE INDEX idx_products_price ON products ((inventory->>\'price\'))');
+            DB::statement('CREATE INDEX idx_products_stock ON products ((inventory->>\'total_stock\'))');
 
-        // Check constraint
-        DB::statement("ALTER TABLE products ADD CONSTRAINT products_product_status_check 
-            CHECK (product_status IN ('active', 'pending_approval', 'inactive', 'archived'))");
+            // Check constraint
+            DB::statement("ALTER TABLE products ADD CONSTRAINT products_product_status_check 
+                CHECK (product_status IN ('active', 'pending_approval', 'inactive', 'archived'))");
 
-        // Partial index
-        DB::statement("CREATE INDEX idx_products_active ON products(id) 
-            WHERE product_status = 'active'");
+            // Partial index
+            DB::statement("CREATE INDEX idx_products_active ON products(id) 
+                WHERE product_status = 'active'");
+        }
     }
 
     public function down(): void
@@ -77,7 +79,7 @@ return new class extends Migration
             $table->dropForeign(['created_by']);
             $table->dropForeign(['updated_by']);
         });
-        
+
         Schema::dropIfExists('products');
     }
 };

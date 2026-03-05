@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'mekari' => [
+        'client_id' => env('MEKARI_CLIENT_ID', env('JURNAL_CLIENT_ID')),
+        'client_secret' => env('MEKARI_CLIENT_SECRET', env('JURNAL_CLIENT_SECRET')),
+        'base_url' => env('MEKARI_BASE_URL', env('JURNAL_BASE_URL', 'https://api.mekari.com')),
+        'jurnal_base_path' => env('MEKARI_JURNAL_BASE_PATH', '/public/jurnal/api/v1'),
+        'webhook_secret' => env('MEKARI_WEBHOOK_SECRET'),
+        'timeout' => env('MEKARI_TIMEOUT', 30),
+        'connect_timeout' => env('MEKARI_CONNECT_TIMEOUT', 10),
+        'debug_signing' => env('MEKARI_DEBUG_SIGNING', false),
+    ],
+
 ];
