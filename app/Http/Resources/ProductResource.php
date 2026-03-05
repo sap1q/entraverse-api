@@ -47,6 +47,8 @@ class ProductResource extends JsonResource
                 $item['stock'] = (int) collect($warehouseStock)->sum();
                 $item['purchase_price'] = (float) ($item['purchase_price'] ?? 0);
                 $item['purchase_price_idr'] = (float) ($item['purchase_price_idr'] ?? 0);
+                $item['tiktok_price'] = (float) ($item['tiktok_price'] ?? ($item['tokopedia_price'] ?? 0));
+                $item['tiktok_fee'] = (float) ($item['tiktok_fee'] ?? ($item['tokopedia_fee'] ?? 0));
                 return $item;
             })
             ->values();
@@ -129,6 +131,10 @@ class ProductResource extends JsonResource
             'trade_in' => (bool) $this->trade_in,
             'product_status' => $this->product_status,
             'status' => $this->product_status,
+            'jurnal_id' => $this->jurnal_id,
+            'jurnal_metadata' => $this->jurnal_metadata,
+            'mekari_status' => $this->mekari_status,
+            'last_synced_at' => optional($this->last_synced_at)?->toISOString(),
             'created_at' => optional($this->created_at)?->toISOString(),
             'updated_at' => optional($this->updated_at)?->toISOString(),
         ];
