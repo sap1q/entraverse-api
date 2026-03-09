@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductStatusRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
@@ -17,6 +18,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->query();
+        $filters['apply_visible'] = true;
 
         // Scope Master Produk: hanya produk aktif dan tidak gagal sinkronisasi marketplace/Jurnal.
         if ($request->boolean('only_active')) {
@@ -28,9 +30,17 @@ class ProductController extends Controller
         return ProductResource::collection($this->service->paginate($filters));
     }
 
+    public function indexAdmin(Request $request)
+    {
+        $filters = $request->query();
+        $filters['apply_visible'] = false;
+
+        return ProductResource::collection($this->service->paginate($filters));
+    }
+
     public function show(Product $product)
     {
-        abort_if($product->product_status !== 'active', 404, 'Product not found');
+        abort_if(! $product->isPubliclyVisible(), 404, 'Product not found');
         return new ProductResource($product);
     }
 
@@ -49,6 +59,13 @@ class ProductController extends Controller
     {
         return new ProductResource(
             $this->service->update($product, $request->validated(), $request->file('images', []))
+        );
+    }
+
+    public function updateStatus(UpdateProductStatusRequest $request, Product $product)
+    {
+        return new ProductResource(
+            $this->service->update($product, $request->validated())
         );
     }
 

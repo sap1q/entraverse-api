@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/v1/admin/login',
             'api/v1/*',
+            // Backward-compatible API paths still used by some admin clients.
+            'api/products/*',
+            // Fallback when frontend base URL is configured without /api suffix.
+            'v1/*',
         ]);
 
         $middleware->api(prepend: [

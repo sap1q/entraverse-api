@@ -6,11 +6,14 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\LogoutController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\BannerController;
+use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Integration\JurnalSyncController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\SalesOrderController;
 use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\UserAddressController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,9 +23,23 @@ Route::prefix('v1')->group(function (): void {
         Route::get('{product}', [ProductController::class, 'show'])->name('show');
     });
 
+    Route::prefix('brands')->name('brands.')->group(function (): void {
+        Route::get('/', [BrandController::class, 'index'])->name('index');
+        Route::get('{brand:slug}', [BrandController::class, 'show'])->name('show');
+    });
+
     Route::prefix('categories')->name('categories.')->group(function (): void {
         Route::get('/', [CategoryController::class, 'index'])->name('index');
         Route::get('{category}', [CategoryController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('banners')->name('banners.')->group(function (): void {
+        Route::get('active', [BannerController::class, 'getActiveBanners'])->name('active');
+    });
+
+    Route::middleware('auth:sanctum')->prefix('user-addresses')->name('user-addresses.')->group(function (): void {
+        Route::get('/', [UserAddressController::class, 'index'])->name('index');
+        Route::patch('set-main', [UserAddressController::class, 'setMain'])->name('set-main');
     });
 
     Route::prefix('admin')->name('admin.')->group(function (): void {
@@ -42,10 +59,12 @@ Route::prefix('v1')->group(function (): void {
             Route::get('user', fn (Request $request) => $request->user())->name('user');
 
             Route::prefix('products')->name('products.')->group(function (): void {
+                Route::get('/', [ProductController::class, 'indexAdmin'])->name('index');
                 Route::get('{product}', [ProductController::class, 'showAdmin'])->name('show');
                 Route::post('/', [ProductController::class, 'store'])->name('store');
                 Route::put('{product}', [ProductController::class, 'update'])->name('update');
                 Route::patch('{product}', [ProductController::class, 'update'])->name('patch');
+                Route::patch('{product}/status', [ProductController::class, 'updateStatus'])->name('patch-status');
                 Route::delete('{product}', [ProductController::class, 'destroy'])->name('destroy');
             });
 
@@ -72,8 +91,39 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('stats/overview', [CategoryController::class, 'statistics'])->name('stats');
                 Route::post('check/name', [CategoryController::class, 'checkName'])->name('check-name');
             });
+
+            Route::prefix('banners')->name('banners.')->group(function (): void {
+                Route::get('/', [BannerController::class, 'index'])->name('index');
+                Route::post('/', [BannerController::class, 'store'])->name('store');
+                Route::post('reorder', [BannerController::class, 'reorder'])->name('reorder');
+                Route::get('{id}', [BannerController::class, 'show'])->name('show');
+                Route::put('{id}', [BannerController::class, 'update'])->name('update');
+                Route::patch('{id}', [BannerController::class, 'update'])->name('patch');
+                Route::delete('{id}', [BannerController::class, 'destroy'])->name('destroy');
+                Route::post('{id}/restore', [BannerController::class, 'restore'])->name('restore');
+                Route::delete('{id}/force', [BannerController::class, 'forceDelete'])->name('force-delete');
+            });
+
+            Route::prefix('brands')->name('brands.')->group(function (): void {
+                Route::get('/', [BrandController::class, 'index'])->name('index');
+                Route::post('/', [BrandController::class, 'store'])->name('store');
+                Route::get('{brand}', [BrandController::class, 'showAdmin'])->name('show');
+                Route::put('{brand}', [BrandController::class, 'update'])->name('update');
+                Route::patch('{brand}', [BrandController::class, 'update'])->name('patch');
+                Route::post('{brand}', [BrandController::class, 'update'])->name('update.post');
+                Route::delete('{brand}', [BrandController::class, 'destroy'])->name('destroy');
+            });
         });
     });
+});
+
+Route::middleware(['auth:sanctum', 'admin.secure', 'admin'])
+    ->patch('products/{product}/status', [ProductController::class, 'updateStatus'])
+    ->name('products.patch-status.compat');
+
+Route::middleware('auth:sanctum')->prefix('user-addresses')->name('user-addresses.compat.')->group(function (): void {
+    Route::get('/', [UserAddressController::class, 'index'])->name('index');
+    Route::patch('set-main', [UserAddressController::class, 'setMain'])->name('set-main');
 });
 
 Route::prefix('v1/integrations/jurnal')->name('integrations.jurnal.')->group(function (): void {

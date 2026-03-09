@@ -139,7 +139,7 @@ class CategoryController extends Controller
                 'min_margin' => 'required|numeric|min:0|max:100',
                 'fees' => 'nullable|json',
                 'program_garansi' => 'nullable|json',
-                'icon' => 'nullable|file|mimes:svg,png|max:2048',
+                'icon' => 'nullable|file|mimes:svg,png,jpg,jpeg,webp|max:5120',
                 'icon_svg' => 'nullable|string',
             ]);
 
@@ -254,7 +254,7 @@ class CategoryController extends Controller
                 'min_margin' => 'sometimes|numeric|min:0|max:100',
                 'fees' => 'nullable|json',
                 'program_garansi' => 'nullable|json',
-                'icon' => 'nullable|file|mimes:svg,png|max:2048',
+                'icon' => 'nullable|file|mimes:svg,png,jpg,jpeg,webp|max:5120',
                 'icon_svg' => 'nullable|string',
                 'remove_icon' => 'nullable|boolean',
             ]);

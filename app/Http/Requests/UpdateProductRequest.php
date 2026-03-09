@@ -16,12 +16,16 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
-            'brand' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
+            'brand' => ['sometimes', 'nullable', 'string', 'max:255', new NoHtml],
+            'brand_id' => ['sometimes', 'nullable', 'uuid', 'exists:brands,id'],
             'category' => ['sometimes', 'required', 'string', 'max:255', new NoHtml],
             'category_id' => ['sometimes', 'nullable', 'uuid', 'exists:categories,id'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'spu' => ['sometimes', 'nullable', 'string', 'max:50', new NoHtml],
             'trade_in' => ['sometimes', 'nullable', 'boolean'],
+            'status' => ['sometimes', 'nullable', 'in:active,inactive,draft'],
+            'is_featured' => ['sometimes', 'nullable', 'boolean'],
+            'stock_status' => ['sometimes', 'nullable', 'in:in_stock,out_of_stock,preorder'],
             'product_status' => ['sometimes', 'nullable', 'in:active,pending_approval,inactive,archived'],
 
             'inventory' => ['sometimes', 'nullable', 'array'],
