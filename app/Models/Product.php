@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     use HasFactory, HasUuids;
+
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_DRAFT = 'draft';
 
     // UUID Setup
     protected $keyType = 'string';
@@ -22,6 +27,7 @@ class Product extends Model
         'category',
         'category_id',
         'brand',
+        'brand_id',
         'description',
         'stock',
         'trade_in',
@@ -35,6 +41,9 @@ class Product extends Model
         'last_synced_at',
         'spu',            // Text: Kode unik produk
         'product_status', // Text: active, pending_approval, inactive
+        'status',         // Enum: active, inactive, draft
+        'is_featured',    // Boolean: produk unggulan
+        'stock_status',   // Enum: in_stock, out_of_stock, preorder
         'created_by',
         'updated_by',
     ];
@@ -48,6 +57,9 @@ class Product extends Model
         'mekari_status' => '{}',
         'trade_in' => false,
         'product_status' => 'active',
+        'status' => self::STATUS_ACTIVE,
+        'is_featured' => false,
+        'stock_status' => 'in_stock',
     ];
 
     // Casting JSONB ke Array agar bisa langsung dimanipulasi di Next.js
@@ -59,10 +71,31 @@ class Product extends Model
         'mekari_status' => 'array',
         'jurnal_metadata' => 'array',
         'trade_in' => 'boolean',
+        'is_featured' => 'boolean',
         'last_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function isPubliclyVisible(): bool
+    {
+        $status = strtolower(trim((string) ($this->status ?? '')));
+        if ($status === '') {
+            $legacy = strtolower(trim((string) ($this->product_status ?? '')));
+            $status = match ($legacy) {
+                'active' => self::STATUS_ACTIVE,
+                'inactive' => self::STATUS_INACTIVE,
+                default => self::STATUS_DRAFT,
+            };
+        }
+
+        return $status === self::STATUS_ACTIVE;
+    }
 
     /**
      * Helper: Mendapatkan stok total dari JSONB inventory
@@ -91,5 +124,10 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function brandModel(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,14 +34,47 @@ class ProductService
         $search = trim((string) ($filters['search'] ?? ''));
         $perPage = max(1, min((int) ($filters['per_page'] ?? 12), 100));
         $driver = DB::connection()->getDriverName();
-        $status = strtolower(trim((string) ($filters['status'] ?? $filters['product_status'] ?? '')));
+        $rawStatus = strtolower(trim((string) ($filters['status'] ?? $filters['product_status'] ?? '')));
+        $status = $this->normalizeStatusFilter($rawStatus);
+        $rawFeatured = $filters['featured'] ?? $filters['is_featured'] ?? null;
+        $isFeatured = $this->normalizeBooleanFilter($rawFeatured);
+        $stockStatus = strtolower(trim((string) ($filters['stock_status'] ?? '')));
+        $applyVisible = filter_var($filters['apply_visible'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $excludeFailedSync = filter_var($filters['exclude_failed_sync'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $onlySyncActivated = filter_var($filters['only_sync_activated'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         return Product::query()
-            ->when($status !== '', fn (Builder $query) => $query->whereRaw('LOWER(product_status) = ?', [$status]))
+            ->with(['category', 'brandModel'])
+            ->when($applyVisible, fn (Builder $query) => $query->visible())
+            ->when($status !== null, fn (Builder $query) => $query->whereRaw('LOWER(COALESCE(status, product_status)) = ?', [$status]))
+            ->when($isFeatured !== null, fn (Builder $query) => $query->where('is_featured', $isFeatured))
+            ->when($stockStatus !== '', fn (Builder $query) => $query->where('stock_status', $stockStatus))
             ->when($filters['category_id'] ?? null, fn (Builder $query, string $categoryId) => $query->where('category_id', $categoryId))
+            ->when($filters['brand_id'] ?? null, fn (Builder $query, string $brandId) => $query->where('brand_id', $brandId))
             ->when($filters['brand'] ?? null, fn (Builder $query, string $brand) => $query->where('brand', $brand))
+            ->when($filters['brands'] ?? null, function (Builder $query, mixed $brands) {
+                $brandTokens = collect(explode(',', (string) $brands))
+                    ->map(fn ($token) => trim((string) $token))
+                    ->filter()
+                    ->values();
+
+                if ($brandTokens->isEmpty()) {
+                    return;
+                }
+
+                $normalized = $brandTokens->map(fn (string $token) => strtolower($token))->all();
+
+                $query->where(function (Builder $nested) use ($brandTokens, $normalized) {
+                    $nested
+                        ->whereIn('brand_id', $brandTokens->all())
+                        ->orWhereIn(DB::raw('LOWER(brand)'), $normalized)
+                        ->orWhereHas('brandModel', function (Builder $brandQuery) use ($normalized) {
+                            $brandQuery
+                                ->whereIn(DB::raw('LOWER(slug)'), $normalized)
+                                ->orWhereIn(DB::raw('LOWER(name)'), $normalized);
+                        });
+                });
+            })
             ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
             ->when($onlySyncActivated, function (Builder $query) use ($driver) {
                 if ($driver === 'pgsql') {
@@ -134,18 +168,40 @@ class ProductService
         $categoryId = (string) ($validated['category_id'] ?? $product?->category_id ?? '');
         $categoryName = $this->cleanText((string) ($validated['category'] ?? $product?->category ?? ''));
         $category = $this->resolveCategoryForPricing($categoryId, $categoryName);
+        $brandId = $this->cleanText((string) ($validated['brand_id'] ?? $product?->brand_id ?? ''));
+        $brandName = $this->cleanText((string) ($validated['brand'] ?? $product?->brand ?? ''));
+        [$brandId, $brandName] = $this->resolveBrandReference($brandId, $brandName);
 
         if ($categoryName === '' && $categoryId !== '') {
             $categoryName = (string) (Category::query()->where('id', $categoryId)->value('name') ?? '');
         }
 
         $variantPricing = $this->recalculateVariantPricing($variantPricing, $category);
+        $hasExplicitStatusInput = array_key_exists('status', $validated) || array_key_exists('product_status', $validated);
+        $status = $this->resolveStatusValue(
+            $validated['status'] ?? null,
+            $validated['product_status'] ?? null,
+            $product?->status,
+            $product?->product_status
+        );
+        $productStatus = $hasExplicitStatusInput
+            ? $this->mapStatusToLegacyProductStatus($status)
+            : (string) ($product?->product_status ?? $this->mapStatusToLegacyProductStatus($status));
+        $stockStatus = $this->resolveStockStatusValue(
+            $validated['stock_status'] ?? null,
+            $calculatedStock,
+            $product?->stock_status
+        );
+        $isFeatured = array_key_exists('is_featured', $validated)
+            ? (bool) $validated['is_featured']
+            : (bool) ($product?->is_featured ?? false);
 
         return [
             'name' => $this->cleanText((string) ($validated['name'] ?? $product?->name ?? '')),
             'category' => $categoryName,
             'category_id' => $categoryId !== '' ? $categoryId : null,
-            'brand' => $this->cleanText((string) ($validated['brand'] ?? $product?->brand ?? '')),
+            'brand' => $brandName,
+            'brand_id' => $brandId !== '' ? $brandId : null,
             'description' => $this->cleanDescription((string) ($validated['description'] ?? $product?->description ?? '')),
             'trade_in' => (bool) ($validated['trade_in'] ?? $product?->trade_in ?? false),
             'inventory' => $inventory,
@@ -153,7 +209,10 @@ class ProductService
             'variant_pricing' => $variantPricing,
             'photos' => $this->resolvePhotos($validated['photos'] ?? null, $uploadedImages, $product?->photos ?? []),
             'spu' => $validated['spu'] ?? $product?->spu ?? $this->generateSpu((string) ($validated['brand'] ?? $product?->brand ?? 'ENTRAVERSE')),
-            'product_status' => $validated['product_status'] ?? $product?->product_status ?? 'active',
+            'product_status' => $productStatus,
+            'status' => $status,
+            'is_featured' => $isFeatured,
+            'stock_status' => $stockStatus,
             'stock' => $calculatedStock,
         ];
     }
@@ -205,6 +264,29 @@ class ProductService
         return Category::query()
             ->whereRaw('LOWER(name) = ?', [strtolower($categoryName)])
             ->first();
+    }
+
+    private function resolveBrandReference(string $brandId, string $brandName): array
+    {
+        $brand = null;
+
+        if ($brandId !== '') {
+            $brand = Brand::query()->find($brandId);
+        }
+
+        if (! $brand && $brandName !== '') {
+            $normalized = strtolower($brandName);
+            $brand = Brand::query()
+                ->whereRaw('LOWER(name) = ?', [$normalized])
+                ->orWhereRaw('LOWER(slug) = ?', [$normalized])
+                ->first();
+        }
+
+        if ($brand) {
+            return [(string) $brand->id, $this->cleanText((string) $brand->name)];
+        }
+
+        return ['', $brandName];
     }
 
     private function recalculateVariantPricing(array $variantPricing, ?Category $category): array
@@ -529,6 +611,100 @@ class ProductService
         return max(0, (int) ($currentStock ?? 0));
     }
 
+    private function normalizeStatusFilter(string $status): ?string
+    {
+        return match ($status) {
+            'active' => 'active',
+            'inactive' => 'inactive',
+            'draft', 'pending', 'pending_approval', 'archived' => 'draft',
+            default => null,
+        };
+    }
+
+    private function normalizeBooleanFilter(mixed $value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return ((int) $value) === 1;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+        return match ($normalized) {
+            '1', 'true', 'yes', 'on' => true,
+            '0', 'false', 'no', 'off' => false,
+            default => null,
+        };
+    }
+
+    private function mapLegacyProductStatusToStatus(string $legacyStatus): string
+    {
+        return match (strtolower(trim($legacyStatus))) {
+            'active' => 'active',
+            'inactive' => 'inactive',
+            default => 'draft',
+        };
+    }
+
+    private function mapStatusToLegacyProductStatus(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'active' => 'active',
+            'inactive' => 'inactive',
+            default => 'pending_approval',
+        };
+    }
+
+    private function resolveStatusValue(
+        mixed $statusInput,
+        mixed $legacyStatusInput,
+        mixed $existingStatus,
+        mixed $existingLegacyStatus
+    ): string {
+        $normalizedStatus = $this->normalizeStatusFilter(strtolower(trim((string) $statusInput)));
+        if ($normalizedStatus !== null) {
+            return $normalizedStatus;
+        }
+
+        $normalizedLegacy = strtolower(trim((string) $legacyStatusInput));
+        if ($normalizedLegacy !== '') {
+            return $this->mapLegacyProductStatusToStatus($normalizedLegacy);
+        }
+
+        $currentStatus = $this->normalizeStatusFilter(strtolower(trim((string) $existingStatus)));
+        if ($currentStatus !== null) {
+            return $currentStatus;
+        }
+
+        $legacyStatus = strtolower(trim((string) $existingLegacyStatus));
+        if ($legacyStatus !== '') {
+            return $this->mapLegacyProductStatusToStatus($legacyStatus);
+        }
+
+        return 'active';
+    }
+
+    private function resolveStockStatusValue(mixed $input, int $calculatedStock, mixed $existingStockStatus): string
+    {
+        $normalizedInput = strtolower(trim((string) $input));
+        if (in_array($normalizedInput, ['in_stock', 'out_of_stock', 'preorder'], true)) {
+            return $normalizedInput;
+        }
+
+        $normalizedExisting = strtolower(trim((string) $existingStockStatus));
+        if ($normalizedInput === '' && in_array($normalizedExisting, ['in_stock', 'out_of_stock', 'preorder'], true)) {
+            return $normalizedExisting;
+        }
+
+        return $calculatedStock <= 0 ? 'out_of_stock' : 'in_stock';
+    }
+
     private function normalizeInventory(array $inventory): array
     {
         $dimensions = is_array($inventory['dimensions_cm'] ?? null) ? $inventory['dimensions_cm'] : [];
@@ -816,7 +992,7 @@ class ProductService
 
         $allowedTags = '<p><br><strong><b><em><i><u><ul><ol><li><h2><h3><blockquote>';
         $sanitized = strip_tags($safeHtml ?? '', $allowedTags);
-        $sanitized = preg_replace('/(?:<p>\s*<\/p>\s*)+/i', '', $sanitized ?? '');
+        $sanitized = preg_replace('/<p>\s*<\/p>/i', '<p><br></p>', $sanitized ?? '');
         $sanitized = preg_replace('/(<br\s*\/?>\s*){3,}/i', '<br><br>', $sanitized ?? '');
         $sanitized = trim((string) $sanitized);
 

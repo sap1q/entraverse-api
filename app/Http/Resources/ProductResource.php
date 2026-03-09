@@ -102,13 +102,43 @@ class ProductResource extends JsonResource
 
         $mainImage = $normalizedPhotos->firstWhere('is_primary', true) ?? $normalizedPhotos->first();
         $priceBreakdown = app(PricingCalculator::class)->fromProduct($this->resource)->toArray();
+        $brandModel = $this->relationLoaded('brandModel') ? $this->brandModel : null;
+        $status = strtolower(trim((string) ($this->status ?? '')));
+        if (! in_array($status, ['active', 'inactive', 'draft'], true)) {
+            $legacyStatus = strtolower(trim((string) ($this->product_status ?? '')));
+            $status = match ($legacyStatus) {
+                'active' => 'active',
+                'inactive' => 'inactive',
+                default => 'draft',
+            };
+        }
+
+        $brandLogo = is_string($brandModel?->logo ?? null) ? (string) $brandModel->logo : null;
+        $brandLogoUrl = null;
+        if ($brandLogo && trim($brandLogo) !== '') {
+            $brandLogoUrl = Str::startsWith($brandLogo, ['http://', 'https://'])
+                ? $brandLogo
+                : url($brandLogo);
+        }
+        $brandReference = $brandModel
+            ? [
+                'id' => (string) $brandModel->id,
+                'name' => (string) $brandModel->name,
+                'slug' => (string) $brandModel->slug,
+                'logo' => $brandModel->logo,
+                'logo_url' => $brandLogoUrl,
+                'is_active' => (bool) $brandModel->is_active,
+            ]
+            : null;
 
         return [
             'id' => (string) $this->id,
             'uuid' => (string) $this->id,
             'name' => $this->name,
             'slug' => Str::slug((string) $this->name),
-            'brand' => $this->brand,
+            'brand' => $brandModel?->name ?? $this->brand,
+            'brand_id' => $this->brand_id ? (string) $this->brand_id : ($brandModel ? (string) $brandModel->id : null),
+            'brand_ref' => $brandReference,
             'category' => $this->category,
             'category_id' => $this->category_id ? (string) $this->category_id : null,
             'description' => $this->description,
@@ -130,7 +160,9 @@ class ProductResource extends JsonResource
             'main_image' => $mainImage['url'] ?? null,
             'trade_in' => (bool) $this->trade_in,
             'product_status' => $this->product_status,
-            'status' => $this->product_status,
+            'status' => $status,
+            'is_featured' => (bool) ($this->is_featured ?? false),
+            'stock_status' => $this->stock_status ?? ($totalStock > 0 ? 'in_stock' : 'out_of_stock'),
             'jurnal_id' => $this->jurnal_id,
             'jurnal_metadata' => $this->jurnal_metadata,
             'mekari_status' => $this->mekari_status,

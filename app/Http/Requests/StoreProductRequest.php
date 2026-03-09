@@ -16,12 +16,16 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', new NoHtml],
-            'brand' => ['required', 'string', 'max:255', new NoHtml],
+            'brand' => ['nullable', 'string', 'max:255', new NoHtml, 'required_without:brand_id'],
+            'brand_id' => ['nullable', 'uuid', 'exists:brands,id', 'required_without:brand'],
             'category' => ['required', 'string', 'max:255', new NoHtml],
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:5000'],
             'spu' => ['nullable', 'string', 'max:50', new NoHtml],
             'trade_in' => ['nullable', 'boolean'],
+            'status' => ['nullable', 'in:active,inactive,draft'],
+            'is_featured' => ['nullable', 'boolean'],
+            'stock_status' => ['nullable', 'in:in_stock,out_of_stock,preorder'],
             'product_status' => ['nullable', 'in:active,pending_approval,inactive,archived'],
 
             'inventory' => ['nullable', 'array'],
