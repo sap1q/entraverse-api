@@ -47,6 +47,7 @@ class ProductResource extends JsonResource
                 $item['stock'] = (int) collect($warehouseStock)->sum();
                 $item['purchase_price'] = (float) ($item['purchase_price'] ?? 0);
                 $item['purchase_price_idr'] = (float) ($item['purchase_price_idr'] ?? 0);
+                $item['margin_percent'] = (float) ($item['margin_percent'] ?? 0);
                 $item['tiktok_price'] = (float) ($item['tiktok_price'] ?? ($item['tokopedia_price'] ?? 0));
                 $item['tiktok_fee'] = (float) ($item['tiktok_fee'] ?? ($item['tokopedia_fee'] ?? 0));
                 return $item;

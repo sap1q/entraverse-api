@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for C:\Users\User\Documents\Kerjaan Entraverse\Project\entraver\entraverse-api\app</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="_css/bootstrap.min.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="_css/nv.d3.min.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="_css/style.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="index.html">C:\Users\User\Documents\Kerjaan Entraverse\Project\entraver\entraverse-api\app</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Classes</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="classCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="classComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="DTOs/PriceBreakdown.php.html#7">App\DTOs\PriceBreakdown</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/AdminAuthController.php.html#10">App\Http\Controllers\Api\AdminAuthController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LogoutController.php.html#13">App\Http\Controllers\Api\Auth\LogoutController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/ProfileController.php.html#14">App\Http\Controllers\Api\Auth\ProfileController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/RegisterController.php.html#17">App\Http\Controllers\Api\Auth\RegisterController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#14">App\Http\Controllers\Api\V1\CategoryController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#13">App\Http\Controllers\Api\V1\ProductController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#16">App\Http\Controllers\Api\V1\SalesOrderController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#16">App\Http\Controllers\Api\V1\StockController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/EmailVerificationNotificationController.php.html#10">App\Http\Controllers\Auth\EmailVerificationNotificationController</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/AdminMiddleware.php.html#13">App\Http\Middleware\AdminMiddleware</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/EnsureEmailIsVerified.php.html#10">App\Http\Middleware\EnsureEmailIsVerified</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/Auth/RegisterRequest.php.html#10">App\Http\Requests\Auth\RegisterRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductStoreRequest.php.html#8">App\Http\Requests\ProductStoreRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductUpdateRequest.php.html#8">App\Http\Requests\ProductUpdateRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#8">App\Http\Requests\StoreProductRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreSalesOrderRequest.php.html#11">App\Http\Requests\StoreSalesOrderRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#8">App\Http\Requests\UpdateProductRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/V1/CategoryRequest.php.html#7">App\Http\Requests\V1\CategoryRequest</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/Auth/UserResource.php.html#10">App\Http\Resources\Auth\UserResource</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/ProductPriceResource.php.html#12">App\Http\Resources\ProductPriceResource</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/ProductResource.php.html#10">App\Http\Resources\ProductResource</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryCollection.php.html#10">App\Http\Resources\V1\CategoryCollection</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryResource.php.html#10">App\Http\Resources\V1\CategoryResource</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Listeners/HandleProductSync.php.html#12">App\Listeners\HandleProductSync</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/ProductVariant.php.html#12">App\Models\ProductVariant</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrder.php.html#13">App\Models\SalesOrder</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrderItem.php.html#12">App\Models\SalesOrderItem</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/StockMutation.php.html#12">App\Models\StockMutation</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Rules/NoHtml.php.html#8">App\Rules\NoHtml</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#9">App\Services\Mekari\Jurnal\JurnalCustomerService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#9">App\Services\Mekari\Jurnal\JurnalInvoiceService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#7">App\Services\Pricing\FeeCalculator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#10">App\Services\Pricing\PricingCalculator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/ShippingCalculator.php.html#7">App\Services\Pricing\ShippingCalculator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#9">App\Services\Pricing\VariantGenerator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/WarrantyCalculator.php.html#7">App\Services\Pricing\WarrantyCalculator</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#13">App\Services\ProductService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#17">App\Services\SalesOrderService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#15">App\Services\StockService</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#13">App\Models\Category</a></td><td class="text-right">11%</td></tr>
+       <tr><td><a href="Models/Product.php.html#11">App\Models\Product</a></td><td class="text-right">20%</td></tr>
+       <tr><td><a href="Http/Middleware/ForceJsonResponse.php.html#10">App\Http\Middleware\ForceJsonResponse</a></td><td class="text-right">22%</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#13">App\Console\Commands\SyncProductsToJurnal</a></td><td class="text-right">23%</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#13">App\Services\Auth\AuthService</a></td><td class="text-right">41%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/VerifyEmailController.php.html#10">App\Http\Controllers\Auth\VerifyEmailController</a></td><td class="text-right">66%</td></tr>
+       <tr><td><a href="Models/Admin.php.html#12">App\Models\Admin</a></td><td class="text-right">66%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#18">App\Http\Controllers\Api\V1\Integration\JurnalSyncController</a></td><td class="text-right">69%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LoginController.php.html#17">App\Http\Controllers\Api\Auth\LoginController</a></td><td class="text-right">72%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/PasswordResetLinkController.php.html#11">App\Http\Controllers\Auth\PasswordResetLinkController</a></td><td class="text-right">72%</td></tr>
+       <tr><td><a href="Jobs/SyncProductToJurnalJob.php.html#18">App\Jobs\SyncProductToJurnalJob</a></td><td class="text-right">80%</td></tr>
+       <tr><td><a href="Providers/AppServiceProvider.php.html#11">App\Providers\AppServiceProvider</a></td><td class="text-right">81%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/NewPasswordController.php.html#15">App\Http\Controllers\Auth\NewPasswordController</a></td><td class="text-right">85%</td></tr>
+       <tr><td><a href="Traits/ApiResponse.php.html#9">App\Traits\ApiResponse</a></td><td class="text-right">88%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Services/StockService.php.html#15">App\Services\StockService</a></td><td class="text-right">6806</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#13">App\Services\ProductService</a></td><td class="text-right">5402</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#14">App\Http\Controllers\Api\V1\CategoryController</a></td><td class="text-right">3906</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#17">App\Services\SalesOrderService</a></td><td class="text-right">2970</td></tr>
+       <tr><td><a href="Http/Resources/ProductResource.php.html#10">App\Http\Resources\ProductResource</a></td><td class="text-right">702</td></tr>
+       <tr><td><a href="Models/Category.php.html#13">App\Models\Category</a></td><td class="text-right">539</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#9">App\Services\Pricing\VariantGenerator</a></td><td class="text-right">110</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#13">App\Console\Commands\SyncProductsToJurnal</a></td><td class="text-right">102</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#16">App\Http\Controllers\Api\V1\SalesOrderController</a></td><td class="text-right">90</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#16">App\Http\Controllers\Api\V1\StockController</a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#10">App\Services\Pricing\PricingCalculator</a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#8">App\Http\Requests\StoreProductRequest</a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#8">App\Http\Requests\UpdateProductRequest</a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#18">App\Http\Controllers\Api\V1\Integration\JurnalSyncController</a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/RegisterController.php.html#17">App\Http\Controllers\Api\Auth\RegisterController</a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Http/Middleware/AdminMiddleware.php.html#13">App\Http\Middleware\AdminMiddleware</a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Middleware/EnsureEmailIsVerified.php.html#10">App\Http\Middleware\EnsureEmailIsVerified</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#7">App\Services\Pricing\FeeCalculator</a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#13">App\Services\Auth\AuthService</a></td><td class="text-right">16</td></tr>
+       <tr><td><a href="Http/Controllers/Api/AdminAuthController.php.html#10">App\Http\Controllers\Api\AdminAuthController</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LogoutController.php.html#13">App\Http\Controllers\Api\Auth\LogoutController</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/ProfileController.php.html#14">App\Http\Controllers\Api\Auth\ProfileController</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryResource.php.html#10">App\Http\Resources\V1\CategoryResource</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Rules/NoHtml.php.html#8">App\Rules\NoHtml</a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Middleware/ForceJsonResponse.php.html#10">App\Http\Middleware\ForceJsonResponse</a></td><td class="text-right">11</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/EmailVerificationNotificationController.php.html#10">App\Http\Controllers\Auth\EmailVerificationNotificationController</a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Jobs/SyncProductToJurnalJob.php.html#18">App\Jobs\SyncProductToJurnalJob</a></td><td class="text-right">5</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LoginController.php.html#17">App\Http\Controllers\Api\Auth\LoginController</a></td><td class="text-right">4</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/VerifyEmailController.php.html#10">App\Http\Controllers\Auth\VerifyEmailController</a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/PasswordResetLinkController.php.html#11">App\Http\Controllers\Auth\PasswordResetLinkController</a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/NewPasswordController.php.html#15">App\Http\Controllers\Auth\NewPasswordController</a></td><td class="text-right">2</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Methods</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="methodCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="methodComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#67"><abbr title="App\Console\Commands\SyncProductsToJurnal::syncAllProducts">syncAllProducts</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="DTOs/PriceBreakdown.php.html#9"><abbr title="App\DTOs\PriceBreakdown::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="DTOs/PriceBreakdown.php.html#28"><abbr title="App\DTOs\PriceBreakdown::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/AdminAuthController.php.html#12"><abbr title="App\Http\Controllers\Api\AdminAuthController::login">login</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LogoutController.php.html#17"><abbr title="App\Http\Controllers\Api\Auth\LogoutController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LogoutController.php.html#21"><abbr title="App\Http\Controllers\Api\Auth\LogoutController::logout">logout</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/ProfileController.php.html#18"><abbr title="App\Http\Controllers\Api\Auth\ProfileController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/ProfileController.php.html#22"><abbr title="App\Http\Controllers\Api\Auth\ProfileController::profile">profile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/RegisterController.php.html#21"><abbr title="App\Http\Controllers\Api\Auth\RegisterController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/RegisterController.php.html#25"><abbr title="App\Http\Controllers\Api\Auth\RegisterController::register">register</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#19"><abbr title="App\Http\Controllers\Api\V1\CategoryController::index">index</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#73"><abbr title="App\Http\Controllers\Api\V1\CategoryController::list">list</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#134"><abbr title="App\Http\Controllers\Api\V1\CategoryController::store">store</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#210"><abbr title="App\Http\Controllers\Api\V1\CategoryController::show">show</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#240"><abbr title="App\Http\Controllers\Api\V1\CategoryController::update">update</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#349"><abbr title="App\Http\Controllers\Api\V1\CategoryController::destroy">destroy</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#382"><abbr title="App\Http\Controllers\Api\V1\CategoryController::restore">restore</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#416"><abbr title="App\Http\Controllers\Api\V1\CategoryController::forceDelete">forceDelete</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#450"><abbr title="App\Http\Controllers\Api\V1\CategoryController::statistics">statistics</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#482"><abbr title="App\Http\Controllers\Api\V1\CategoryController::bulkDelete">bulkDelete</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#518"><abbr title="App\Http\Controllers\Api\V1\CategoryController::checkName">checkName</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#15"><abbr title="App\Http\Controllers\Api\V1\ProductController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#17"><abbr title="App\Http\Controllers\Api\V1\ProductController::index">index</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#22"><abbr title="App\Http\Controllers\Api\V1\ProductController::show">show</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#28"><abbr title="App\Http\Controllers\Api\V1\ProductController::showAdmin">showAdmin</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#33"><abbr title="App\Http\Controllers\Api\V1\ProductController::store">store</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#39"><abbr title="App\Http\Controllers\Api\V1\ProductController::update">update</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/ProductController.php.html#46"><abbr title="App\Http\Controllers\Api\V1\ProductController::destroy">destroy</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#18"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#22"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::index">index</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#45"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::catalog">catalog</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#60"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::store">store</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#89"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::show">show</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#104"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::transformOrder">transformOrder</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#18"><abbr title="App\Http\Controllers\Api\V1\StockController::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#22"><abbr title="App\Http\Controllers\Api\V1\StockController::index">index</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#42"><abbr title="App\Http\Controllers\Api\V1\StockController::mutations">mutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#96"><abbr title="App\Http\Controllers\Api\V1\StockController::adjust">adjust</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/EmailVerificationNotificationController.php.html#15"><abbr title="App\Http\Controllers\Auth\EmailVerificationNotificationController::store">store</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/AdminMiddleware.php.html#15"><abbr title="App\Http\Middleware\AdminMiddleware::handle">handle</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/AdminMiddleware.php.html#45"><abbr title="App\Http\Middleware\AdminMiddleware::unauthorized">unauthorized</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/EnsureEmailIsVerified.php.html#17"><abbr title="App\Http\Middleware\EnsureEmailIsVerified::handle">handle</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/Auth/RegisterRequest.php.html#12"><abbr title="App\Http\Requests\Auth\RegisterRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/Auth/RegisterRequest.php.html#20"><abbr title="App\Http\Requests\Auth\RegisterRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/Auth/RegisterRequest.php.html#30"><abbr title="App\Http\Requests\Auth\RegisterRequest::prepareForValidation">prepareForValidation</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductStoreRequest.php.html#13"><abbr title="App\Http\Requests\ProductStoreRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductStoreRequest.php.html#23"><abbr title="App\Http\Requests\ProductStoreRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductUpdateRequest.php.html#13"><abbr title="App\Http\Requests\ProductUpdateRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/ProductUpdateRequest.php.html#23"><abbr title="App\Http\Requests\ProductUpdateRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#10"><abbr title="App\Http\Requests\StoreProductRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#15"><abbr title="App\Http\Requests\StoreProductRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#58"><abbr title="App\Http\Requests\StoreProductRequest::prepareForValidation">prepareForValidation</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreSalesOrderRequest.php.html#13"><abbr title="App\Http\Requests\StoreSalesOrderRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/StoreSalesOrderRequest.php.html#18"><abbr title="App\Http\Requests\StoreSalesOrderRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#10"><abbr title="App\Http\Requests\UpdateProductRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#15"><abbr title="App\Http\Requests\UpdateProductRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#58"><abbr title="App\Http\Requests\UpdateProductRequest::prepareForValidation">prepareForValidation</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/V1/CategoryRequest.php.html#9"><abbr title="App\Http\Requests\V1\CategoryRequest::authorize">authorize</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/V1/CategoryRequest.php.html#14"><abbr title="App\Http\Requests\V1\CategoryRequest::rules">rules</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Requests/V1/CategoryRequest.php.html#28"><abbr title="App\Http\Requests\V1\CategoryRequest::messages">messages</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/Auth/UserResource.php.html#15"><abbr title="App\Http\Resources\Auth\UserResource::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/ProductPriceResource.php.html#14"><abbr title="App\Http\Resources\ProductPriceResource::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/ProductResource.php.html#12"><abbr title="App\Http\Resources\ProductResource::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryCollection.php.html#15"><abbr title="App\Http\Resources\V1\CategoryCollection::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryResource.php.html#17"><abbr title="App\Http\Resources\V1\CategoryResource::toArray">toArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Listeners/HandleProductSync.php.html#23"><abbr title="App\Listeners\HandleProductSync::handle">handle</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Admin.php.html#39"><abbr title="App\Models\Admin::stockMutations">stockMutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Admin.php.html#44"><abbr title="App\Models\Admin::salesOrdersCreated">salesOrdersCreated</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#50"><abbr title="App\Models\Category::getIconAttribute">getIconAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#61"><abbr title="App\Models\Category::getFormattedFeesAttribute">getFormattedFeesAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#74"><abbr title="App\Models\Category::getFeeMarketplace">getFeeMarketplace</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#84"><abbr title="App\Models\Category::getFeeShopee">getFeeShopee</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#94"><abbr title="App\Models\Category::getFeeEntraverse">getFeeEntraverse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#104"><abbr title="App\Models\Category::getFeeTokopediaTiktok">getFeeTokopediaTiktok</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#114"><abbr title="App\Models\Category::storeSvgFile">storeSvgFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#125"><abbr title="App\Models\Category::setIconFromFile">setIconFromFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#139"><abbr title="App\Models\Category::setIconFromRaw">setIconFromRaw</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#152"><abbr title="App\Models\Category::deleteIconFile">deleteIconFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#168"><abbr title="App\Models\Category::getSvgContent">getSvgContent</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#189"><abbr title="App\Models\Category::calculateTotalFees">calculateTotalFees</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#204"><abbr title="App\Models\Category::hasFees">hasFees</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#212"><abbr title="App\Models\Category::scopeActive">scopeActive</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#220"><abbr title="App\Models\Category::scopeSearch">scopeSearch</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Category.php.html#228"><abbr title="App\Models\Category::scopeMinMargin">scopeMinMargin</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Product.php.html#71"><abbr title="App\Models\Product::getTotalStockAttribute">getTotalStockAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Product.php.html#76"><abbr title="App\Models\Product::productVariants">productVariants</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Product.php.html#81"><abbr title="App\Models\Product::stockMutations">stockMutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/Product.php.html#86"><abbr title="App\Models\Product::salesOrderItems">salesOrderItems</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/ProductVariant.php.html#37"><abbr title="App\Models\ProductVariant::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrder.php.html#47"><abbr title="App\Models\SalesOrder::items">items</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrder.php.html#52"><abbr title="App\Models\SalesOrder::creator">creator</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrder.php.html#57"><abbr title="App\Models\SalesOrder::updater">updater</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrderItem.php.html#44"><abbr title="App\Models\SalesOrderItem::order">order</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/SalesOrderItem.php.html#49"><abbr title="App\Models\SalesOrderItem::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/StockMutation.php.html#36"><abbr title="App\Models\StockMutation::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Models/StockMutation.php.html#41"><abbr title="App\Models\StockMutation::admin">admin</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Rules/NoHtml.php.html#13"><abbr title="App\Rules\NoHtml::validate">validate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#46"><abbr title="App\Services\Auth\AuthService::register">register</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#65"><abbr title="App\Services\Auth\AuthService::logout">logout</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#70"><abbr title="App\Services\Auth\AuthService::profile">profile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#11"><abbr title="App\Services\Mekari\Jurnal\JurnalCustomerService::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#17"><abbr title="App\Services\Mekari\Jurnal\JurnalCustomerService::getCustomers">getCustomers</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#28"><abbr title="App\Services\Mekari\Jurnal\JurnalCustomerService::createCustomer">createCustomer</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#39"><abbr title="App\Services\Mekari\Jurnal\JurnalCustomerService::updateCustomer">updateCustomer</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalCustomerService.php.html#46"><abbr title="App\Services\Mekari\Jurnal\JurnalCustomerService::jurnalBasePath">jurnalBasePath</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#11"><abbr title="App\Services\Mekari\Jurnal\JurnalInvoiceService::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#17"><abbr title="App\Services\Mekari\Jurnal\JurnalInvoiceService::getInvoices">getInvoices</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#28"><abbr title="App\Services\Mekari\Jurnal\JurnalInvoiceService::createInvoice">createInvoice</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#39"><abbr title="App\Services\Mekari\Jurnal\JurnalInvoiceService::updateInvoice">updateInvoice</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalInvoiceService.php.html#46"><abbr title="App\Services\Mekari\Jurnal\JurnalInvoiceService::jurnalBasePath">jurnalBasePath</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#21"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::getProducts">getProducts</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#91"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::syncProduct">syncProduct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#9"><abbr title="App\Services\Pricing\FeeCalculator::fromRate">fromRate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#17"><abbr title="App\Services\Pricing\FeeCalculator::sumFromRates">sumFromRates</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#27"><abbr title="App\Services\Pricing\FeeCalculator::nonNegative">nonNegative</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#12"><abbr title="App\Services\Pricing\PricingCalculator::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#19"><abbr title="App\Services\Pricing\PricingCalculator::calculateBasePrice">calculateBasePrice</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#24"><abbr title="App\Services\Pricing\PricingCalculator::calculateShipping">calculateShipping</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#35"><abbr title="App\Services\Pricing\PricingCalculator::calculateFees">calculateFees</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#40"><abbr title="App\Services\Pricing\PricingCalculator::calculateWarranty">calculateWarranty</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#54"><abbr title="App\Services\Pricing\PricingCalculator::getPriceBreakdown">getPriceBreakdown</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#115"><abbr title="App\Services\Pricing\PricingCalculator::fromProduct">fromProduct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/ShippingCalculator.php.html#9"><abbr title="App\Services\Pricing\ShippingCalculator::calculateAir">calculateAir</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/ShippingCalculator.php.html#14"><abbr title="App\Services\Pricing\ShippingCalculator::calculateSea">calculateSea</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/ShippingCalculator.php.html#19"><abbr title="App\Services\Pricing\ShippingCalculator::nonNegative">nonNegative</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#15"><abbr title="App\Services\Pricing\VariantGenerator::generateCombinations">generateCombinations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#49"><abbr title="App\Services\Pricing\VariantGenerator::calculateVariantPrice">calculateVariantPrice</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#61"><abbr title="App\Services\Pricing\VariantGenerator::generateSku">generateSku</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/WarrantyCalculator.php.html#9"><abbr title="App\Services\Pricing\WarrantyCalculator::calculateCost">calculateCost</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/WarrantyCalculator.php.html#14"><abbr title="App\Services\Pricing\WarrantyCalculator::calculateProfit">calculateProfit</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/Pricing/WarrantyCalculator.php.html#19"><abbr title="App\Services\Pricing\WarrantyCalculator::nonNegative">nonNegative</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#18"><abbr title="App\Services\ProductService::paginate">paginate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#51"><abbr title="App\Services\ProductService::store">store</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#60"><abbr title="App\Services\ProductService::update">update</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#70"><abbr title="App\Services\ProductService::buildPayload">buildPayload</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#118"><abbr title="App\Services\ProductService::normalizeVariantPricing">normalizeVariantPricing</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#151"><abbr title="App\Services\ProductService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#173"><abbr title="App\Services\ProductService::calculateTotalStock">calculateTotalStock</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#196"><abbr title="App\Services\ProductService::resolvePhotos">resolvePhotos</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#302"><abbr title="App\Services\ProductService::finalizePhotos">finalizePhotos</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#344"><abbr title="App\Services\ProductService::normalizeArray">normalizeArray</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#364"><abbr title="App\Services\ProductService::cleanText">cleanText</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#369"><abbr title="App\Services\ProductService::cleanDescription">cleanDescription</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#403"><abbr title="App\Services\ProductService::generateSpu">generateSpu</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#19"><abbr title="App\Services\SalesOrderService::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#23"><abbr title="App\Services\SalesOrderService::paginate">paginate</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#51"><abbr title="App\Services\SalesOrderService::catalog">catalog</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#112"><abbr title="App\Services\SalesOrderService::create">create</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#235"><abbr title="App\Services\SalesOrderService::find">find</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#245"><abbr title="App\Services\SalesOrderService::extractVariantRows">extractVariantRows</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#300"><abbr title="App\Services\SalesOrderService::findVariantBySku">findVariantBySku</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#316"><abbr title="App\Services\SalesOrderService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#339"><abbr title="App\Services\SalesOrderService::calculateLandedCost">calculateLandedCost</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#354"><abbr title="App\Services\SalesOrderService::resolveUnitPrice">resolveUnitPrice</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#372"><abbr title="App\Services\SalesOrderService::resolveSku">resolveSku</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#399"><abbr title="App\Services\SalesOrderService::generateOrderNumber">generateOrderNumber</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#20"><abbr title="App\Services\StockService::listInventory">listInventory</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#120"><abbr title="App\Services\StockService::getMutations">getMutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#131"><abbr title="App\Services\StockService::adjust">adjust</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#225"><abbr title="App\Services\StockService::extractVariantRows">extractVariantRows</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#286"><abbr title="App\Services\StockService::toInventoryRows">toInventoryRows</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#346"><abbr title="App\Services\StockService::findVariantIndex">findVariantIndex</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#362"><abbr title="App\Services\StockService::applyStatusFilter">applyStatusFilter</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#375"><abbr title="App\Services\StockService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#403"><abbr title="App\Services\StockService::resolveDelta">resolveDelta</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#412"><abbr title="App\Services\StockService::resolveStatus">resolveStatus</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#425"><abbr title="App\Services\StockService::resolveSku">resolveSku</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#452"><abbr title="App\Services\StockService::resolveWarehouse">resolveWarehouse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#468"><abbr title="App\Services\StockService::resolveProductImage">resolveProductImage</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Services/StockService.php.html#487"><abbr title="App\Services\StockService::composeNote">composeNote</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Traits/ApiResponse.php.html#31"><abbr title="App\Traits\ApiResponse::created">created</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Traits/ApiResponse.php.html#36"><abbr title="App\Traits\ApiResponse::noContent">noContent</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Http/Middleware/ForceJsonResponse.php.html#12"><abbr title="App\Http\Middleware\ForceJsonResponse::handle">handle</abbr></a></td><td class="text-right">22%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#142"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::getJurnalProducts">getJurnalProducts</abbr></a></td><td class="text-right">27%</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#39"><abbr title="App\Console\Commands\SyncProductsToJurnal::syncSingleProduct">syncSingleProduct</abbr></a></td><td class="text-right">42%</td></tr>
+       <tr><td><a href="Models/Category.php.html#236"><abbr title="App\Models\Category::boot">boot</abbr></a></td><td class="text-right">50%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#194"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncProductsDirectly">syncProductsDirectly</abbr></a></td><td class="text-right">54%</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#219"><abbr title="App\Services\Mekari\MekariService::decodeResponseBody">decodeResponseBody</abbr></a></td><td class="text-right">62%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/VerifyEmailController.php.html#15"><abbr title="App\Http\Controllers\Auth\VerifyEmailController::__invoke">__invoke</abbr></a></td><td class="text-right">66%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LoginController.php.html#25"><abbr title="App\Http\Controllers\Api\Auth\LoginController::login">login</abbr></a></td><td class="text-right">70%</td></tr>
+       <tr><td><a href="Jobs/SyncProductToJurnalJob.php.html#41"><abbr title="App\Jobs\SyncProductToJurnalJob::handle">handle</abbr></a></td><td class="text-right">71%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#79"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncAllProducts">syncAllProducts</abbr></a></td><td class="text-right">72%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/PasswordResetLinkController.php.html#18"><abbr title="App\Http\Controllers\Auth\PasswordResetLinkController::store">store</abbr></a></td><td class="text-right">72%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#184"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::resolveNumericValue">resolveNumericValue</abbr></a></td><td class="text-right">75%</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#169"><abbr title="App\Services\Mekari\MekariService::normalizePath">normalizePath</abbr></a></td><td class="text-right">75%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#22"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncProduct">syncProduct</abbr></a></td><td class="text-right">77%</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#27"><abbr title="App\Console\Commands\SyncProductsToJurnal::handle">handle</abbr></a></td><td class="text-right">80%</td></tr>
+       <tr><td><a href="Providers/AppServiceProvider.php.html#24"><abbr title="App\Providers\AppServiceProvider::boot">boot</abbr></a></td><td class="text-right">80%</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/NewPasswordController.php.html#22"><abbr title="App\Http\Controllers\Auth\NewPasswordController::store">store</abbr></a></td><td class="text-right">85%</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#46"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::updateProduct">updateProduct</abbr></a></td><td class="text-right">87%</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#227"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::isValidWebhookSignature">isValidWebhookSignature</abbr></a></td><td class="text-right">88%</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#197"><abbr title="App\Services\Mekari\MekariService::resolveQuery">resolveQuery</abbr></a></td><td class="text-right">88%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Http/Resources/ProductResource.php.html#12"><abbr title="App\Http\Resources\ProductResource::toArray">toArray</abbr></a></td><td class="text-right">702</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#196"><abbr title="App\Services\ProductService::resolvePhotos">resolvePhotos</abbr></a></td><td class="text-right">552</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#240"><abbr title="App\Http\Controllers\Api\V1\CategoryController::update">update</abbr></a></td><td class="text-right">420</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#245"><abbr title="App\Services\SalesOrderService::extractVariantRows">extractVariantRows</abbr></a></td><td class="text-right">182</td></tr>
+       <tr><td><a href="Services/StockService.php.html#225"><abbr title="App\Services\StockService::extractVariantRows">extractVariantRows</abbr></a></td><td class="text-right">182</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#112"><abbr title="App\Services\SalesOrderService::create">create</abbr></a></td><td class="text-right">156</td></tr>
+       <tr><td><a href="Services/StockService.php.html#20"><abbr title="App\Services\StockService::listInventory">listInventory</abbr></a></td><td class="text-right">132</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#302"><abbr title="App\Services\ProductService::finalizePhotos">finalizePhotos</abbr></a></td><td class="text-right">90</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#73"><abbr title="App\Http\Controllers\Api\V1\CategoryController::list">list</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#70"><abbr title="App\Services\ProductService::buildPayload">buildPayload</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Services/StockService.php.html#375"><abbr title="App\Services\StockService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">72</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#67"><abbr title="App\Console\Commands\SyncProductsToJurnal::syncAllProducts">syncAllProducts</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#134"><abbr title="App\Http\Controllers\Api\V1\CategoryController::store">store</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#316"><abbr title="App\Services\SalesOrderService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Services/StockService.php.html#131"><abbr title="App\Services\StockService::adjust">adjust</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Services/StockService.php.html#468"><abbr title="App\Services\StockService::resolveProductImage">resolveProductImage</abbr></a></td><td class="text-right">56</td></tr>
+       <tr><td><a href="Models/Category.php.html#168"><abbr title="App\Models\Category::getSvgContent">getSvgContent</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#15"><abbr title="App\Services\Pricing\VariantGenerator::generateCombinations">generateCombinations</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#151"><abbr title="App\Services\ProductService::normalizeWarehouseStock">normalizeWarehouseStock</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#173"><abbr title="App\Services\ProductService::calculateTotalStock">calculateTotalStock</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#344"><abbr title="App\Services\ProductService::normalizeArray">normalizeArray</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/StockService.php.html#286"><abbr title="App\Services\StockService::toInventoryRows">toInventoryRows</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Services/StockService.php.html#362"><abbr title="App\Services\StockService::applyStatusFilter">applyStatusFilter</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/RegisterController.php.html#25"><abbr title="App\Http\Controllers\Api\Auth\RegisterController::register">register</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#19"><abbr title="App\Http\Controllers\Api\V1\CategoryController::index">index</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#518"><abbr title="App\Http\Controllers\Api\V1\CategoryController::checkName">checkName</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Requests/StoreProductRequest.php.html#58"><abbr title="App\Http\Requests\StoreProductRequest::prepareForValidation">prepareForValidation</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Requests/UpdateProductRequest.php.html#58"><abbr title="App\Http\Requests\UpdateProductRequest::prepareForValidation">prepareForValidation</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#118"><abbr title="App\Services\ProductService::normalizeVariantPricing">normalizeVariantPricing</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#372"><abbr title="App\Services\SalesOrderService::resolveSku">resolveSku</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Services/StockService.php.html#403"><abbr title="App\Services\StockService::resolveDelta">resolveDelta</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Services/StockService.php.html#425"><abbr title="App\Services\StockService::resolveSku">resolveSku</abbr></a></td><td class="text-right">30</td></tr>
+       <tr><td><a href="Http/Middleware/AdminMiddleware.php.html#15"><abbr title="App\Http\Middleware\AdminMiddleware::handle">handle</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Http/Middleware/EnsureEmailIsVerified.php.html#17"><abbr title="App\Http\Middleware\EnsureEmailIsVerified::handle">handle</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Models/Category.php.html#152"><abbr title="App\Models\Category::deleteIconFile">deleteIconFile</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Services/StockService.php.html#452"><abbr title="App\Services\StockService::resolveWarehouse">resolveWarehouse</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Http/Controllers/Api/AdminAuthController.php.html#12"><abbr title="App\Http\Controllers\Api\AdminAuthController::login">login</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#210"><abbr title="App\Http\Controllers\Api\V1\CategoryController::show">show</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#349"><abbr title="App\Http\Controllers\Api\V1\CategoryController::destroy">destroy</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#382"><abbr title="App\Http\Controllers\Api\V1\CategoryController::restore">restore</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#416"><abbr title="App\Http\Controllers\Api\V1\CategoryController::forceDelete">forceDelete</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#482"><abbr title="App\Http\Controllers\Api\V1\CategoryController::bulkDelete">bulkDelete</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#104"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::transformOrder">transformOrder</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#42"><abbr title="App\Http\Controllers\Api\V1\StockController::mutations">mutations</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/StockController.php.html#96"><abbr title="App\Http\Controllers\Api\V1\StockController::adjust">adjust</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Resources/V1/CategoryResource.php.html#17"><abbr title="App\Http\Resources\V1\CategoryResource::toArray">toArray</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Rules/NoHtml.php.html#13"><abbr title="App\Rules\NoHtml::validate">validate</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/Pricing/VariantGenerator.php.html#61"><abbr title="App\Services\Pricing\VariantGenerator::generateSku">generateSku</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#369"><abbr title="App\Services\ProductService::cleanDescription">cleanDescription</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#23"><abbr title="App\Services\SalesOrderService::paginate">paginate</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#51"><abbr title="App\Services\SalesOrderService::catalog">catalog</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#300"><abbr title="App\Services\SalesOrderService::findVariantBySku">findVariantBySku</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#354"><abbr title="App\Services\SalesOrderService::resolveUnitPrice">resolveUnitPrice</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/StockService.php.html#346"><abbr title="App\Services\StockService::findVariantIndex">findVariantIndex</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/StockService.php.html#412"><abbr title="App\Services\StockService::resolveStatus">resolveStatus</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Services/StockService.php.html#487"><abbr title="App\Services\StockService::composeNote">composeNote</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="Http/Middleware/ForceJsonResponse.php.html#12"><abbr title="App\Http\Middleware\ForceJsonResponse::handle">handle</abbr></a></td><td class="text-right">11</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#142"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::getJurnalProducts">getJurnalProducts</abbr></a></td><td class="text-right">10</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#22"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncProduct">syncProduct</abbr></a></td><td class="text-right">7</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#39"><abbr title="App\Console\Commands\SyncProductsToJurnal::syncSingleProduct">syncSingleProduct</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LogoutController.php.html#21"><abbr title="App\Http\Controllers\Api\Auth\LogoutController::logout">logout</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/ProfileController.php.html#22"><abbr title="App\Http\Controllers\Api\Auth\ProfileController::profile">profile</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/CategoryController.php.html#450"><abbr title="App\Http\Controllers\Api\V1\CategoryController::statistics">statistics</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/SalesOrderController.php.html#60"><abbr title="App\Http\Controllers\Api\V1\SalesOrderController::store">store</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/EmailVerificationNotificationController.php.html#15"><abbr title="App\Http\Controllers\Auth\EmailVerificationNotificationController::store">store</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Models/Category.php.html#189"><abbr title="App\Models\Category::calculateTotalFees">calculateTotalFees</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/Auth/AuthService.php.html#70"><abbr title="App\Services\Auth\AuthService::profile">profile</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#91"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::syncProduct">syncProduct</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/Pricing/FeeCalculator.php.html#17"><abbr title="App\Services\Pricing\FeeCalculator::sumFromRates">sumFromRates</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/Pricing/PricingCalculator.php.html#115"><abbr title="App\Services\Pricing\PricingCalculator::fromProduct">fromProduct</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#18"><abbr title="App\Services\ProductService::paginate">paginate</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/ProductService.php.html#403"><abbr title="App\Services\ProductService::generateSpu">generateSpu</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Services/SalesOrderService.php.html#339"><abbr title="App\Services\SalesOrderService::calculateLandedCost">calculateLandedCost</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#79"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncAllProducts">syncAllProducts</abbr></a></td><td class="text-right">5</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#219"><abbr title="App\Services\Mekari\MekariService::decodeResponseBody">decodeResponseBody</abbr></a></td><td class="text-right">4</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#197"><abbr title="App\Services\Mekari\MekariService::resolveQuery">resolveQuery</abbr></a></td><td class="text-right">4</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#194"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::syncProductsDirectly">syncProductsDirectly</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/VerifyEmailController.php.html#15"><abbr title="App\Http\Controllers\Auth\VerifyEmailController::__invoke">__invoke</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Http/Controllers/Api/Auth/LoginController.php.html#25"><abbr title="App\Http\Controllers\Api\Auth\LoginController::login">login</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#184"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::resolveNumericValue">resolveNumericValue</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Services/Mekari/MekariService.php.html#169"><abbr title="App\Services\Mekari\MekariService::normalizePath">normalizePath</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Http/Controllers/Api/V1/Integration/JurnalSyncController.php.html#227"><abbr title="App\Http\Controllers\Api\V1\Integration\JurnalSyncController::isValidWebhookSignature">isValidWebhookSignature</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="Models/Category.php.html#236"><abbr title="App\Models\Category::boot">boot</abbr></a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Jobs/SyncProductToJurnalJob.php.html#41"><abbr title="App\Jobs\SyncProductToJurnalJob::handle">handle</abbr></a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/PasswordResetLinkController.php.html#18"><abbr title="App\Http\Controllers\Auth\PasswordResetLinkController::store">store</abbr></a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Console/Commands/SyncProductsToJurnal.php.html#27"><abbr title="App\Console\Commands\SyncProductsToJurnal::handle">handle</abbr></a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Http/Controllers/Auth/NewPasswordController.php.html#22"><abbr title="App\Http\Controllers\Auth\NewPasswordController::store">store</abbr></a></td><td class="text-right">2</td></tr>
+       <tr><td><a href="Services/Mekari/Jurnal/JurnalProductService.php.html#46"><abbr title="App\Services\Mekari\Jurnal\JurnalProductService::updateProduct">updateProduct</abbr></a></td><td class="text-right">2</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.12</a> using <a href="https://www.php.net/" target="_top">PHP 8.3.30</a> and <a href="https://phpunit.de/">PHPUnit 11.5.50</a> at Thu Mar 5 9:59:04 WIB 2026.</small>
+    </p>
+   </footer>
+  </div>
+  <script src="_js/jquery.min.js?v=11.0.12" type="text/javascript"></script>
+  <script src="_js/d3.min.js?v=11.0.12" type="text/javascript"></script>
+  <script src="_js/nv.d3.min.js?v=11.0.12" type="text/javascript"></script>
+  <script type="text/javascript">
+$(document).ready(function() {
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#classCoverageDistribution svg')
+      .datum(getCoverageDistributionData([40,0,1,3,0,1,0,3,2,4,2,12], "Class Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#methodCoverageDistribution svg')
+      .datum(getCoverageDistributionData([172,0,0,2,0,1,2,2,7,6,3,39], "Method Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getCoverageDistributionData(data, label) {
+    var labels = [
+      '0%',
+      '0-10%',
+      '10-20%',
+      '20-30%',
+      '30-40%',
+      '40-50%',
+      '50-60%',
+      '60-70%',
+      '70-80%',
+      '80-90%',
+      '90-100%',
+      '100%'
+    ];
+    var values = [];
+    $.each(labels, function(key) {
+      values.push({x: labels[key], y: data[key]});
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Cyclomatic Complexity');
+
+    d3.select('#classComplexity svg')
+      .datum(getComplexityData([[23.404255319148938,14,"<a href=\"Console\/Commands\/SyncProductsToJurnal.php.html#13\">App\\Console\\Commands\\SyncProductsToJurnal<\/a>"],[0,2,"<a href=\"DTOs\/PriceBreakdown.php.html#7\">App\\DTOs\\PriceBreakdown<\/a>"],[100,1,"<a href=\"Events\/ProductSyncedToJurnal.php.html#11\">App\\Events\\ProductSyncedToJurnal<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/AdminAuthController.php.html#10\">App\\Http\\Controllers\\Api\\AdminAuthController<\/a>"],[72.72727272727273,4,"<a href=\"Http\/Controllers\/Api\/Auth\/LoginController.php.html#17\">App\\Http\\Controllers\\Api\\Auth\\LoginController<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/Auth\/LogoutController.php.html#13\">App\\Http\\Controllers\\Api\\Auth\\LogoutController<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/Auth\/ProfileController.php.html#14\">App\\Http\\Controllers\\Api\\Auth\\ProfileController<\/a>"],[0,6,"<a href=\"Http\/Controllers\/Api\/Auth\/RegisterController.php.html#17\">App\\Http\\Controllers\\Api\\Auth\\RegisterController<\/a>"],[0,62,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#14\">App\\Http\\Controllers\\Api\\V1\\CategoryController<\/a>"],[69.48051948051948,25,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#18\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController<\/a>"],[0,7,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#13\">App\\Http\\Controllers\\Api\\V1\\ProductController<\/a>"],[0,9,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#16\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController<\/a>"],[0,8,"<a href=\"Http\/Controllers\/Api\/V1\/StockController.php.html#16\">App\\Http\\Controllers\\Api\\V1\\StockController<\/a>"],[100,2,"<a href=\"Http\/Controllers\/Auth\/AuthenticatedSessionController.php.html#11\">App\\Http\\Controllers\\Auth\\AuthenticatedSessionController<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Auth\/EmailVerificationNotificationController.php.html#10\">App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController<\/a>"],[85,2,"<a href=\"Http\/Controllers\/Auth\/NewPasswordController.php.html#15\">App\\Http\\Controllers\\Auth\\NewPasswordController<\/a>"],[72.72727272727273,2,"<a href=\"Http\/Controllers\/Auth\/PasswordResetLinkController.php.html#11\">App\\Http\\Controllers\\Auth\\PasswordResetLinkController<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Auth\/RegisteredUserController.php.html#14\">App\\Http\\Controllers\\Auth\\RegisteredUserController<\/a>"],[66.66666666666666,3,"<a href=\"Http\/Controllers\/Auth\/VerifyEmailController.php.html#10\">App\\Http\\Controllers\\Auth\\VerifyEmailController<\/a>"],[100,0,"<a href=\"Http\/Controllers\/Controller.php.html#5\">App\\Http\\Controllers\\Controller<\/a>"],[0,5,"<a href=\"Http\/Middleware\/AdminMiddleware.php.html#13\">App\\Http\\Middleware\\AdminMiddleware<\/a>"],[100,2,"<a href=\"Http\/Middleware\/AdminSecureHeader.php.html#9\">App\\Http\\Middleware\\AdminSecureHeader<\/a>"],[0,4,"<a href=\"Http\/Middleware\/EnsureEmailIsVerified.php.html#10\">App\\Http\\Middleware\\EnsureEmailIsVerified<\/a>"],[22.22222222222222,4,"<a href=\"Http\/Middleware\/ForceJsonResponse.php.html#10\">App\\Http\\Middleware\\ForceJsonResponse<\/a>"],[100,0,"<a href=\"Http\/Middleware\/VerifyCsrfToken.php.html#7\">App\\Http\\Middleware\\VerifyCsrfToken<\/a>"],[100,5,"<a href=\"Http\/Requests\/Auth\/LoginRequest.php.html#11\">App\\Http\\Requests\\Auth\\LoginRequest<\/a>"],[0,3,"<a href=\"Http\/Requests\/Auth\/RegisterRequest.php.html#10\">App\\Http\\Requests\\Auth\\RegisterRequest<\/a>"],[0,2,"<a href=\"Http\/Requests\/ProductStoreRequest.php.html#8\">App\\Http\\Requests\\ProductStoreRequest<\/a>"],[0,2,"<a href=\"Http\/Requests\/ProductUpdateRequest.php.html#8\">App\\Http\\Requests\\ProductUpdateRequest<\/a>"],[0,7,"<a href=\"Http\/Requests\/StoreProductRequest.php.html#8\">App\\Http\\Requests\\StoreProductRequest<\/a>"],[0,2,"<a href=\"Http\/Requests\/StoreSalesOrderRequest.php.html#11\">App\\Http\\Requests\\StoreSalesOrderRequest<\/a>"],[0,7,"<a href=\"Http\/Requests\/UpdateProductRequest.php.html#8\">App\\Http\\Requests\\UpdateProductRequest<\/a>"],[0,3,"<a href=\"Http\/Requests\/V1\/CategoryRequest.php.html#7\">App\\Http\\Requests\\V1\\CategoryRequest<\/a>"],[100,1,"<a href=\"Http\/Resources\/Auth\/AdminResource.php.html#10\">App\\Http\\Resources\\Auth\\AdminResource<\/a>"],[100,2,"<a href=\"Http\/Resources\/Auth\/AuthResource.php.html#10\">App\\Http\\Resources\\Auth\\AuthResource<\/a>"],[0,1,"<a href=\"Http\/Resources\/Auth\/UserResource.php.html#10\">App\\Http\\Resources\\Auth\\UserResource<\/a>"],[0,1,"<a href=\"Http\/Resources\/ProductPriceResource.php.html#12\">App\\Http\\Resources\\ProductPriceResource<\/a>"],[0,26,"<a href=\"Http\/Resources\/ProductResource.php.html#10\">App\\Http\\Resources\\ProductResource<\/a>"],[0,1,"<a href=\"Http\/Resources\/V1\/CategoryCollection.php.html#10\">App\\Http\\Resources\\V1\\CategoryCollection<\/a>"],[0,3,"<a href=\"Http\/Resources\/V1\/CategoryResource.php.html#10\">App\\Http\\Resources\\V1\\CategoryResource<\/a>"],[80.95238095238095,5,"<a href=\"Jobs\/SyncProductToJurnalJob.php.html#18\">App\\Jobs\\SyncProductToJurnalJob<\/a>"],[0,1,"<a href=\"Listeners\/HandleProductSync.php.html#12\">App\\Listeners\\HandleProductSync<\/a>"],[66.66666666666666,3,"<a href=\"Models\/Admin.php.html#12\">App\\Models\\Admin<\/a>"],[11.11111111111111,27,"<a href=\"Models\/Category.php.html#13\">App\\Models\\Category<\/a>"],[20,5,"<a href=\"Models\/Product.php.html#11\">App\\Models\\Product<\/a>"],[0,1,"<a href=\"Models\/ProductVariant.php.html#12\">App\\Models\\ProductVariant<\/a>"],[0,3,"<a href=\"Models\/SalesOrder.php.html#13\">App\\Models\\SalesOrder<\/a>"],[0,2,"<a href=\"Models\/SalesOrderItem.php.html#12\">App\\Models\\SalesOrderItem<\/a>"],[0,2,"<a href=\"Models\/StockMutation.php.html#12\">App\\Models\\StockMutation<\/a>"],[100,1,"<a href=\"Models\/User.php.html#12\">App\\Models\\User<\/a>"],[81.81818181818183,2,"<a href=\"Providers\/AppServiceProvider.php.html#11\">App\\Providers\\AppServiceProvider<\/a>"],[100,0,"<a href=\"Providers\/EventServiceProvider.php.html#11\">App\\Providers\\EventServiceProvider<\/a>"],[0,3,"<a href=\"Rules\/NoHtml.php.html#8\">App\\Rules\\NoHtml<\/a>"],[41.37931034482759,7,"<a href=\"Services\/Auth\/AuthService.php.html#13\">App\\Services\\Auth\\AuthService<\/a>"],[100,3,"<a href=\"Services\/Mekari\/Exceptions\/MekariApiException.php.html#10\">App\\Services\\Mekari\\Exceptions\\MekariApiException<\/a>"],[0,5,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#9\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService<\/a>"],[0,5,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#9\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService<\/a>"],[90.38461538461539,19,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#13\">App\\Services\\Mekari\\Jurnal\\JurnalProductService<\/a>"],[94.33962264150944,27,"<a href=\"Services\/Mekari\/MekariService.php.html#17\">App\\Services\\Mekari\\MekariService<\/a>"],[0,4,"<a href=\"Services\/Pricing\/FeeCalculator.php.html#7\">App\\Services\\Pricing\\FeeCalculator<\/a>"],[0,8,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#10\">App\\Services\\Pricing\\PricingCalculator<\/a>"],[0,3,"<a href=\"Services\/Pricing\/ShippingCalculator.php.html#7\">App\\Services\\Pricing\\ShippingCalculator<\/a>"],[0,10,"<a href=\"Services\/Pricing\/VariantGenerator.php.html#9\">App\\Services\\Pricing\\VariantGenerator<\/a>"],[0,3,"<a href=\"Services\/Pricing\/WarrantyCalculator.php.html#7\">App\\Services\\Pricing\\WarrantyCalculator<\/a>"],[0,73,"<a href=\"Services\/ProductService.php.html#13\">App\\Services\\ProductService<\/a>"],[0,54,"<a href=\"Services\/SalesOrderService.php.html#17\">App\\Services\\SalesOrderService<\/a>"],[0,82,"<a href=\"Services\/StockService.php.html#15\">App\\Services\\StockService<\/a>"],[88.88888888888889,5,"<a href=\"Traits\/ApiResponse.php.html#9\">App\\Traits\\ApiResponse<\/a>"]], 'Class Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Method Complexity');
+
+    d3.select('#methodComplexity svg')
+      .datum(getComplexityData([[100,1,"<a href=\"Console\/Commands\/SyncProductsToJurnal.php.html#22\">App\\Console\\Commands\\SyncProductsToJurnal::__construct<\/a>"],[80,2,"<a href=\"Console\/Commands\/SyncProductsToJurnal.php.html#27\">App\\Console\\Commands\\SyncProductsToJurnal::handle<\/a>"],[42.857142857142854,4,"<a href=\"Console\/Commands\/SyncProductsToJurnal.php.html#39\">App\\Console\\Commands\\SyncProductsToJurnal::syncSingleProduct<\/a>"],[0,7,"<a href=\"Console\/Commands\/SyncProductsToJurnal.php.html#67\">App\\Console\\Commands\\SyncProductsToJurnal::syncAllProducts<\/a>"],[0,1,"<a href=\"DTOs\/PriceBreakdown.php.html#9\">App\\DTOs\\PriceBreakdown::__construct<\/a>"],[0,1,"<a href=\"DTOs\/PriceBreakdown.php.html#28\">App\\DTOs\\PriceBreakdown::toArray<\/a>"],[100,1,"<a href=\"Events\/ProductSyncedToJurnal.php.html#19\">App\\Events\\ProductSyncedToJurnal::__construct<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/AdminAuthController.php.html#12\">App\\Http\\Controllers\\Api\\AdminAuthController::login<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Api\/Auth\/LoginController.php.html#21\">App\\Http\\Controllers\\Api\\Auth\\LoginController::__construct<\/a>"],[70,3,"<a href=\"Http\/Controllers\/Api\/Auth\/LoginController.php.html#25\">App\\Http\\Controllers\\Api\\Auth\\LoginController::login<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/Auth\/LogoutController.php.html#17\">App\\Http\\Controllers\\Api\\Auth\\LogoutController::__construct<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Api\/Auth\/LogoutController.php.html#21\">App\\Http\\Controllers\\Api\\Auth\\LogoutController::logout<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/Auth\/ProfileController.php.html#18\">App\\Http\\Controllers\\Api\\Auth\\ProfileController::__construct<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Api\/Auth\/ProfileController.php.html#22\">App\\Http\\Controllers\\Api\\Auth\\ProfileController::profile<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/Auth\/RegisterController.php.html#21\">App\\Http\\Controllers\\Api\\Auth\\RegisterController::__construct<\/a>"],[0,5,"<a href=\"Http\/Controllers\/Api\/Auth\/RegisterController.php.html#25\">App\\Http\\Controllers\\Api\\Auth\\RegisterController::register<\/a>"],[0,5,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#19\">App\\Http\\Controllers\\Api\\V1\\CategoryController::index<\/a>"],[0,8,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#73\">App\\Http\\Controllers\\Api\\V1\\CategoryController::list<\/a>"],[0,7,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#134\">App\\Http\\Controllers\\Api\\V1\\CategoryController::store<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#210\">App\\Http\\Controllers\\Api\\V1\\CategoryController::show<\/a>"],[0,20,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#240\">App\\Http\\Controllers\\Api\\V1\\CategoryController::update<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#349\">App\\Http\\Controllers\\Api\\V1\\CategoryController::destroy<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#382\">App\\Http\\Controllers\\Api\\V1\\CategoryController::restore<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#416\">App\\Http\\Controllers\\Api\\V1\\CategoryController::forceDelete<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#450\">App\\Http\\Controllers\\Api\\V1\\CategoryController::statistics<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#482\">App\\Http\\Controllers\\Api\\V1\\CategoryController::bulkDelete<\/a>"],[0,5,"<a href=\"Http\/Controllers\/Api\/V1\/CategoryController.php.html#518\">App\\Http\\Controllers\\Api\\V1\\CategoryController::checkName<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#20\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::__construct<\/a>"],[77.27272727272727,7,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#22\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::syncProduct<\/a>"],[72.3404255319149,5,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#79\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::syncAllProducts<\/a>"],[27.77777777777778,4,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#142\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::getJurnalProducts<\/a>"],[100,2,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#167\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::webhook<\/a>"],[54.54545454545454,3,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#194\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::syncProductsDirectly<\/a>"],[88.88888888888889,3,"<a href=\"Http\/Controllers\/Api\/V1\/Integration\/JurnalSyncController.php.html#227\">App\\Http\\Controllers\\Api\\V1\\Integration\\JurnalSyncController::isValidWebhookSignature<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#15\">App\\Http\\Controllers\\Api\\V1\\ProductController::__construct<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#17\">App\\Http\\Controllers\\Api\\V1\\ProductController::index<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#22\">App\\Http\\Controllers\\Api\\V1\\ProductController::show<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#28\">App\\Http\\Controllers\\Api\\V1\\ProductController::showAdmin<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#33\">App\\Http\\Controllers\\Api\\V1\\ProductController::store<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#39\">App\\Http\\Controllers\\Api\\V1\\ProductController::update<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/ProductController.php.html#46\">App\\Http\\Controllers\\Api\\V1\\ProductController::destroy<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#18\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::__construct<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#22\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::index<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#45\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::catalog<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#60\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::store<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#89\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::show<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/SalesOrderController.php.html#104\">App\\Http\\Controllers\\Api\\V1\\SalesOrderController::transformOrder<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/StockController.php.html#18\">App\\Http\\Controllers\\Api\\V1\\StockController::__construct<\/a>"],[0,1,"<a href=\"Http\/Controllers\/Api\/V1\/StockController.php.html#22\">App\\Http\\Controllers\\Api\\V1\\StockController::index<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/StockController.php.html#42\">App\\Http\\Controllers\\Api\\V1\\StockController::mutations<\/a>"],[0,3,"<a href=\"Http\/Controllers\/Api\/V1\/StockController.php.html#96\">App\\Http\\Controllers\\Api\\V1\\StockController::adjust<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Auth\/AuthenticatedSessionController.php.html#16\">App\\Http\\Controllers\\Auth\\AuthenticatedSessionController::store<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Auth\/AuthenticatedSessionController.php.html#28\">App\\Http\\Controllers\\Auth\\AuthenticatedSessionController::destroy<\/a>"],[0,2,"<a href=\"Http\/Controllers\/Auth\/EmailVerificationNotificationController.php.html#15\">App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController::store<\/a>"],[85,2,"<a href=\"Http\/Controllers\/Auth\/NewPasswordController.php.html#22\">App\\Http\\Controllers\\Auth\\NewPasswordController::store<\/a>"],[72.72727272727273,2,"<a href=\"Http\/Controllers\/Auth\/PasswordResetLinkController.php.html#18\">App\\Http\\Controllers\\Auth\\PasswordResetLinkController::store<\/a>"],[100,1,"<a href=\"Http\/Controllers\/Auth\/RegisteredUserController.php.html#21\">App\\Http\\Controllers\\Auth\\RegisteredUserController::store<\/a>"],[66.66666666666666,3,"<a href=\"Http\/Controllers\/Auth\/VerifyEmailController.php.html#15\">App\\Http\\Controllers\\Auth\\VerifyEmailController::__invoke<\/a>"],[0,4,"<a href=\"Http\/Middleware\/AdminMiddleware.php.html#15\">App\\Http\\Middleware\\AdminMiddleware::handle<\/a>"],[0,1,"<a href=\"Http\/Middleware\/AdminMiddleware.php.html#45\">App\\Http\\Middleware\\AdminMiddleware::unauthorized<\/a>"],[100,2,"<a href=\"Http\/Middleware\/AdminSecureHeader.php.html#16\">App\\Http\\Middleware\\AdminSecureHeader::handle<\/a>"],[0,4,"<a href=\"Http\/Middleware\/EnsureEmailIsVerified.php.html#17\">App\\Http\\Middleware\\EnsureEmailIsVerified::handle<\/a>"],[22.22222222222222,4,"<a href=\"Http\/Middleware\/ForceJsonResponse.php.html#12\">App\\Http\\Middleware\\ForceJsonResponse::handle<\/a>"],[100,1,"<a href=\"Http\/Requests\/Auth\/LoginRequest.php.html#13\">App\\Http\\Requests\\Auth\\LoginRequest::authorize<\/a>"],[100,1,"<a href=\"Http\/Requests\/Auth\/LoginRequest.php.html#21\">App\\Http\\Requests\\Auth\\LoginRequest::rules<\/a>"],[100,1,"<a href=\"Http\/Requests\/Auth\/LoginRequest.php.html#30\">App\\Http\\Requests\\Auth\\LoginRequest::prepareForValidation<\/a>"],[100,2,"<a href=\"Http\/Requests\/Auth\/LoginRequest.php.html#42\">App\\Http\\Requests\\Auth\\LoginRequest::authenticate<\/a>"],[0,1,"<a href=\"Http\/Requests\/Auth\/RegisterRequest.php.html#12\">App\\Http\\Requests\\Auth\\RegisterRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/Auth\/RegisterRequest.php.html#20\">App\\Http\\Requests\\Auth\\RegisterRequest::rules<\/a>"],[0,1,"<a href=\"Http\/Requests\/Auth\/RegisterRequest.php.html#30\">App\\Http\\Requests\\Auth\\RegisterRequest::prepareForValidation<\/a>"],[0,1,"<a href=\"Http\/Requests\/ProductStoreRequest.php.html#13\">App\\Http\\Requests\\ProductStoreRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/ProductStoreRequest.php.html#23\">App\\Http\\Requests\\ProductStoreRequest::rules<\/a>"],[0,1,"<a href=\"Http\/Requests\/ProductUpdateRequest.php.html#13\">App\\Http\\Requests\\ProductUpdateRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/ProductUpdateRequest.php.html#23\">App\\Http\\Requests\\ProductUpdateRequest::rules<\/a>"],[0,1,"<a href=\"Http\/Requests\/StoreProductRequest.php.html#10\">App\\Http\\Requests\\StoreProductRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/StoreProductRequest.php.html#15\">App\\Http\\Requests\\StoreProductRequest::rules<\/a>"],[0,5,"<a href=\"Http\/Requests\/StoreProductRequest.php.html#58\">App\\Http\\Requests\\StoreProductRequest::prepareForValidation<\/a>"],[0,1,"<a href=\"Http\/Requests\/StoreSalesOrderRequest.php.html#13\">App\\Http\\Requests\\StoreSalesOrderRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/StoreSalesOrderRequest.php.html#18\">App\\Http\\Requests\\StoreSalesOrderRequest::rules<\/a>"],[0,1,"<a href=\"Http\/Requests\/UpdateProductRequest.php.html#10\">App\\Http\\Requests\\UpdateProductRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/UpdateProductRequest.php.html#15\">App\\Http\\Requests\\UpdateProductRequest::rules<\/a>"],[0,5,"<a href=\"Http\/Requests\/UpdateProductRequest.php.html#58\">App\\Http\\Requests\\UpdateProductRequest::prepareForValidation<\/a>"],[0,1,"<a href=\"Http\/Requests\/V1\/CategoryRequest.php.html#9\">App\\Http\\Requests\\V1\\CategoryRequest::authorize<\/a>"],[0,1,"<a href=\"Http\/Requests\/V1\/CategoryRequest.php.html#14\">App\\Http\\Requests\\V1\\CategoryRequest::rules<\/a>"],[0,1,"<a href=\"Http\/Requests\/V1\/CategoryRequest.php.html#28\">App\\Http\\Requests\\V1\\CategoryRequest::messages<\/a>"],[100,1,"<a href=\"Http\/Resources\/Auth\/AdminResource.php.html#15\">App\\Http\\Resources\\Auth\\AdminResource::toArray<\/a>"],[100,1,"<a href=\"Http\/Resources\/Auth\/AuthResource.php.html#12\">App\\Http\\Resources\\Auth\\AuthResource::__construct<\/a>"],[100,1,"<a href=\"Http\/Resources\/Auth\/AuthResource.php.html#20\">App\\Http\\Resources\\Auth\\AuthResource::toArray<\/a>"],[0,1,"<a href=\"Http\/Resources\/Auth\/UserResource.php.html#15\">App\\Http\\Resources\\Auth\\UserResource::toArray<\/a>"],[0,1,"<a href=\"Http\/Resources\/ProductPriceResource.php.html#14\">App\\Http\\Resources\\ProductPriceResource::toArray<\/a>"],[0,26,"<a href=\"Http\/Resources\/ProductResource.php.html#12\">App\\Http\\Resources\\ProductResource::toArray<\/a>"],[0,1,"<a href=\"Http\/Resources\/V1\/CategoryCollection.php.html#15\">App\\Http\\Resources\\V1\\CategoryCollection::toArray<\/a>"],[0,3,"<a href=\"Http\/Resources\/V1\/CategoryResource.php.html#17\">App\\Http\\Resources\\V1\\CategoryResource::toArray<\/a>"],[100,1,"<a href=\"Jobs\/SyncProductToJurnalJob.php.html#34\">App\\Jobs\\SyncProductToJurnalJob::__construct<\/a>"],[100,1,"<a href=\"Jobs\/SyncProductToJurnalJob.php.html#36\">App\\Jobs\\SyncProductToJurnalJob::uniqueId<\/a>"],[71.42857142857143,2,"<a href=\"Jobs\/SyncProductToJurnalJob.php.html#41\">App\\Jobs\\SyncProductToJurnalJob::handle<\/a>"],[100,1,"<a href=\"Jobs\/SyncProductToJurnalJob.php.html#64\">App\\Jobs\\SyncProductToJurnalJob::failed<\/a>"],[0,1,"<a href=\"Listeners\/HandleProductSync.php.html#23\">App\\Listeners\\HandleProductSync::handle<\/a>"],[100,1,"<a href=\"Models\/Admin.php.html#31\">App\\Models\\Admin::casts<\/a>"],[0,1,"<a href=\"Models\/Admin.php.html#39\">App\\Models\\Admin::stockMutations<\/a>"],[0,1,"<a href=\"Models\/Admin.php.html#44\">App\\Models\\Admin::salesOrdersCreated<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#50\">App\\Models\\Category::getIconAttribute<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#61\">App\\Models\\Category::getFormattedFeesAttribute<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#74\">App\\Models\\Category::getFeeMarketplace<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#84\">App\\Models\\Category::getFeeShopee<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#94\">App\\Models\\Category::getFeeEntraverse<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#104\">App\\Models\\Category::getFeeTokopediaTiktok<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#114\">App\\Models\\Category::storeSvgFile<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#125\">App\\Models\\Category::setIconFromFile<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#139\">App\\Models\\Category::setIconFromRaw<\/a>"],[0,4,"<a href=\"Models\/Category.php.html#152\">App\\Models\\Category::deleteIconFile<\/a>"],[0,6,"<a href=\"Models\/Category.php.html#168\">App\\Models\\Category::getSvgContent<\/a>"],[0,2,"<a href=\"Models\/Category.php.html#189\">App\\Models\\Category::calculateTotalFees<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#204\">App\\Models\\Category::hasFees<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#212\">App\\Models\\Category::scopeActive<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#220\">App\\Models\\Category::scopeSearch<\/a>"],[0,1,"<a href=\"Models\/Category.php.html#228\">App\\Models\\Category::scopeMinMargin<\/a>"],[50,2,"<a href=\"Models\/Category.php.html#236\">App\\Models\\Category::boot<\/a>"],[0,1,"<a href=\"Models\/Product.php.html#71\">App\\Models\\Product::getTotalStockAttribute<\/a>"],[0,1,"<a href=\"Models\/Product.php.html#76\">App\\Models\\Product::productVariants<\/a>"],[0,1,"<a href=\"Models\/Product.php.html#81\">App\\Models\\Product::stockMutations<\/a>"],[0,1,"<a href=\"Models\/Product.php.html#86\">App\\Models\\Product::salesOrderItems<\/a>"],[100,1,"<a href=\"Models\/Product.php.html#91\">App\\Models\\Product::category<\/a>"],[0,1,"<a href=\"Models\/ProductVariant.php.html#37\">App\\Models\\ProductVariant::product<\/a>"],[0,1,"<a href=\"Models\/SalesOrder.php.html#47\">App\\Models\\SalesOrder::items<\/a>"],[0,1,"<a href=\"Models\/SalesOrder.php.html#52\">App\\Models\\SalesOrder::creator<\/a>"],[0,1,"<a href=\"Models\/SalesOrder.php.html#57\">App\\Models\\SalesOrder::updater<\/a>"],[0,1,"<a href=\"Models\/SalesOrderItem.php.html#44\">App\\Models\\SalesOrderItem::order<\/a>"],[0,1,"<a href=\"Models\/SalesOrderItem.php.html#49\">App\\Models\\SalesOrderItem::product<\/a>"],[0,1,"<a href=\"Models\/StockMutation.php.html#36\">App\\Models\\StockMutation::product<\/a>"],[0,1,"<a href=\"Models\/StockMutation.php.html#41\">App\\Models\\StockMutation::admin<\/a>"],[100,1,"<a href=\"Models\/User.php.html#46\">App\\Models\\User::casts<\/a>"],[100,1,"<a href=\"Providers\/AppServiceProvider.php.html#16\">App\\Providers\\AppServiceProvider::register<\/a>"],[80,1,"<a href=\"Providers\/AppServiceProvider.php.html#24\">App\\Providers\\AppServiceProvider::boot<\/a>"],[0,3,"<a href=\"Rules\/NoHtml.php.html#13\">App\\Rules\\NoHtml::validate<\/a>"],[100,3,"<a href=\"Services\/Auth\/AuthService.php.html#19\">App\\Services\\Auth\\AuthService::login<\/a>"],[0,1,"<a href=\"Services\/Auth\/AuthService.php.html#46\">App\\Services\\Auth\\AuthService::register<\/a>"],[0,1,"<a href=\"Services\/Auth\/AuthService.php.html#65\">App\\Services\\Auth\\AuthService::logout<\/a>"],[0,2,"<a href=\"Services\/Auth\/AuthService.php.html#70\">App\\Services\\Auth\\AuthService::profile<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Exceptions\/MekariApiException.php.html#12\">App\\Services\\Mekari\\Exceptions\\MekariApiException::__construct<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Exceptions\/MekariApiException.php.html#21\">App\\Services\\Mekari\\Exceptions\\MekariApiException::getStatusCode<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Exceptions\/MekariApiException.php.html#26\">App\\Services\\Mekari\\Exceptions\\MekariApiException::getResponseBody<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#11\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService::__construct<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#17\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService::getCustomers<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#28\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService::createCustomer<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#39\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService::updateCustomer<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalCustomerService.php.html#46\">App\\Services\\Mekari\\Jurnal\\JurnalCustomerService::jurnalBasePath<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#11\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService::__construct<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#17\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService::getInvoices<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#28\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService::createInvoice<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#39\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService::updateInvoice<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalInvoiceService.php.html#46\">App\\Services\\Mekari\\Jurnal\\JurnalInvoiceService::jurnalBasePath<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#15\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::__construct<\/a>"],[0,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#21\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::getProducts<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#31\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::createProduct<\/a>"],[87.5,2,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#46\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::updateProduct<\/a>"],[93.33333333333333,2,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#65\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::deleteProduct<\/a>"],[0,2,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#91\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::syncProduct<\/a>"],[100,5,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#101\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::transformProductToJurnal<\/a>"],[95,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#157\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::persistSyncResult<\/a>"],[75,3,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#184\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::resolveNumericValue<\/a>"],[100,1,"<a href=\"Services\/Mekari\/Jurnal\/JurnalProductService.php.html#195\">App\\Services\\Mekari\\Jurnal\\JurnalProductService::jurnalBasePath<\/a>"],[90.9090909090909,3,"<a href=\"Services\/Mekari\/MekariService.php.html#27\">App\\Services\\Mekari\\MekariService::__construct<\/a>"],[100,2,"<a href=\"Services\/Mekari\/MekariService.php.html#53\">App\\Services\\Mekari\\MekariService::generateSignature<\/a>"],[100,1,"<a href=\"Services\/Mekari\/MekariService.php.html#75\">App\\Services\\Mekari\\MekariService::buildAuthHeader<\/a>"],[100,1,"<a href=\"Services\/Mekari\/MekariService.php.html#87\">App\\Services\\Mekari\\MekariService::generateDigest<\/a>"],[100,6,"<a href=\"Services\/Mekari\/MekariService.php.html#103\">App\\Services\\Mekari\\MekariService::request<\/a>"],[75,3,"<a href=\"Services\/Mekari\/MekariService.php.html#169\">App\\Services\\Mekari\\MekariService::normalizePath<\/a>"],[100,3,"<a href=\"Services\/Mekari\/MekariService.php.html#182\">App\\Services\\Mekari\\MekariService::appendQueryToPath<\/a>"],[88.88888888888889,4,"<a href=\"Services\/Mekari\/MekariService.php.html#197\">App\\Services\\Mekari\\MekariService::resolveQuery<\/a>"],[62.5,4,"<a href=\"Services\/Mekari\/MekariService.php.html#219\">App\\Services\\Mekari\\MekariService::decodeResponseBody<\/a>"],[0,1,"<a href=\"Services\/Pricing\/FeeCalculator.php.html#9\">App\\Services\\Pricing\\FeeCalculator::fromRate<\/a>"],[0,2,"<a href=\"Services\/Pricing\/FeeCalculator.php.html#17\">App\\Services\\Pricing\\FeeCalculator::sumFromRates<\/a>"],[0,1,"<a href=\"Services\/Pricing\/FeeCalculator.php.html#27\">App\\Services\\Pricing\\FeeCalculator::nonNegative<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#12\">App\\Services\\Pricing\\PricingCalculator::__construct<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#19\">App\\Services\\Pricing\\PricingCalculator::calculateBasePrice<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#24\">App\\Services\\Pricing\\PricingCalculator::calculateShipping<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#35\">App\\Services\\Pricing\\PricingCalculator::calculateFees<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#40\">App\\Services\\Pricing\\PricingCalculator::calculateWarranty<\/a>"],[0,1,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#54\">App\\Services\\Pricing\\PricingCalculator::getPriceBreakdown<\/a>"],[0,2,"<a href=\"Services\/Pricing\/PricingCalculator.php.html#115\">App\\Services\\Pricing\\PricingCalculator::fromProduct<\/a>"],[0,1,"<a href=\"Services\/Pricing\/ShippingCalculator.php.html#9\">App\\Services\\Pricing\\ShippingCalculator::calculateAir<\/a>"],[0,1,"<a href=\"Services\/Pricing\/ShippingCalculator.php.html#14\">App\\Services\\Pricing\\ShippingCalculator::calculateSea<\/a>"],[0,1,"<a href=\"Services\/Pricing\/ShippingCalculator.php.html#19\">App\\Services\\Pricing\\ShippingCalculator::nonNegative<\/a>"],[0,6,"<a href=\"Services\/Pricing\/VariantGenerator.php.html#15\">App\\Services\\Pricing\\VariantGenerator::generateCombinations<\/a>"],[0,1,"<a href=\"Services\/Pricing\/VariantGenerator.php.html#49\">App\\Services\\Pricing\\VariantGenerator::calculateVariantPrice<\/a>"],[0,3,"<a href=\"Services\/Pricing\/VariantGenerator.php.html#61\">App\\Services\\Pricing\\VariantGenerator::generateSku<\/a>"],[0,1,"<a href=\"Services\/Pricing\/WarrantyCalculator.php.html#9\">App\\Services\\Pricing\\WarrantyCalculator::calculateCost<\/a>"],[0,1,"<a href=\"Services\/Pricing\/WarrantyCalculator.php.html#14\">App\\Services\\Pricing\\WarrantyCalculator::calculateProfit<\/a>"],[0,1,"<a href=\"Services\/Pricing\/WarrantyCalculator.php.html#19\">App\\Services\\Pricing\\WarrantyCalculator::nonNegative<\/a>"],[0,2,"<a href=\"Services\/ProductService.php.html#18\">App\\Services\\ProductService::paginate<\/a>"],[0,1,"<a href=\"Services\/ProductService.php.html#51\">App\\Services\\ProductService::store<\/a>"],[0,1,"<a href=\"Services\/ProductService.php.html#60\">App\\Services\\ProductService::update<\/a>"],[0,8,"<a href=\"Services\/ProductService.php.html#70\">App\\Services\\ProductService::buildPayload<\/a>"],[0,5,"<a href=\"Services\/ProductService.php.html#118\">App\\Services\\ProductService::normalizeVariantPricing<\/a>"],[0,6,"<a href=\"Services\/ProductService.php.html#151\">App\\Services\\ProductService::normalizeWarehouseStock<\/a>"],[0,6,"<a href=\"Services\/ProductService.php.html#173\">App\\Services\\ProductService::calculateTotalStock<\/a>"],[0,23,"<a href=\"Services\/ProductService.php.html#196\">App\\Services\\ProductService::resolvePhotos<\/a>"],[0,9,"<a href=\"Services\/ProductService.php.html#302\">App\\Services\\ProductService::finalizePhotos<\/a>"],[0,6,"<a href=\"Services\/ProductService.php.html#344\">App\\Services\\ProductService::normalizeArray<\/a>"],[0,1,"<a href=\"Services\/ProductService.php.html#364\">App\\Services\\ProductService::cleanText<\/a>"],[0,3,"<a href=\"Services\/ProductService.php.html#369\">App\\Services\\ProductService::cleanDescription<\/a>"],[0,2,"<a href=\"Services\/ProductService.php.html#403\">App\\Services\\ProductService::generateSpu<\/a>"],[0,1,"<a href=\"Services\/SalesOrderService.php.html#19\">App\\Services\\SalesOrderService::__construct<\/a>"],[0,3,"<a href=\"Services\/SalesOrderService.php.html#23\">App\\Services\\SalesOrderService::paginate<\/a>"],[0,3,"<a href=\"Services\/SalesOrderService.php.html#51\">App\\Services\\SalesOrderService::catalog<\/a>"],[0,12,"<a href=\"Services\/SalesOrderService.php.html#112\">App\\Services\\SalesOrderService::create<\/a>"],[0,1,"<a href=\"Services\/SalesOrderService.php.html#235\">App\\Services\\SalesOrderService::find<\/a>"],[0,13,"<a href=\"Services\/SalesOrderService.php.html#245\">App\\Services\\SalesOrderService::extractVariantRows<\/a>"],[0,3,"<a href=\"Services\/SalesOrderService.php.html#300\">App\\Services\\SalesOrderService::findVariantBySku<\/a>"],[0,7,"<a href=\"Services\/SalesOrderService.php.html#316\">App\\Services\\SalesOrderService::normalizeWarehouseStock<\/a>"],[0,2,"<a href=\"Services\/SalesOrderService.php.html#339\">App\\Services\\SalesOrderService::calculateLandedCost<\/a>"],[0,3,"<a href=\"Services\/SalesOrderService.php.html#354\">App\\Services\\SalesOrderService::resolveUnitPrice<\/a>"],[0,5,"<a href=\"Services\/SalesOrderService.php.html#372\">App\\Services\\SalesOrderService::resolveSku<\/a>"],[0,1,"<a href=\"Services\/SalesOrderService.php.html#399\">App\\Services\\SalesOrderService::generateOrderNumber<\/a>"],[0,11,"<a href=\"Services\/StockService.php.html#20\">App\\Services\\StockService::listInventory<\/a>"],[0,1,"<a href=\"Services\/StockService.php.html#120\">App\\Services\\StockService::getMutations<\/a>"],[0,7,"<a href=\"Services\/StockService.php.html#131\">App\\Services\\StockService::adjust<\/a>"],[0,13,"<a href=\"Services\/StockService.php.html#225\">App\\Services\\StockService::extractVariantRows<\/a>"],[0,6,"<a href=\"Services\/StockService.php.html#286\">App\\Services\\StockService::toInventoryRows<\/a>"],[0,3,"<a href=\"Services\/StockService.php.html#346\">App\\Services\\StockService::findVariantIndex<\/a>"],[0,6,"<a href=\"Services\/StockService.php.html#362\">App\\Services\\StockService::applyStatusFilter<\/a>"],[0,8,"<a href=\"Services\/StockService.php.html#375\">App\\Services\\StockService::normalizeWarehouseStock<\/a>"],[0,5,"<a href=\"Services\/StockService.php.html#403\">App\\Services\\StockService::resolveDelta<\/a>"],[0,3,"<a href=\"Services\/StockService.php.html#412\">App\\Services\\StockService::resolveStatus<\/a>"],[0,5,"<a href=\"Services\/StockService.php.html#425\">App\\Services\\StockService::resolveSku<\/a>"],[0,4,"<a href=\"Services\/StockService.php.html#452\">App\\Services\\StockService::resolveWarehouse<\/a>"],[0,7,"<a href=\"Services\/StockService.php.html#468\">App\\Services\\StockService::resolveProductImage<\/a>"],[0,3,"<a href=\"Services\/StockService.php.html#487\">App\\Services\\StockService::composeNote<\/a>"],[100,1,"<a href=\"Traits\/ApiResponse.php.html#11\">App\\Traits\\ApiResponse::success<\/a>"],[100,1,"<a href=\"Traits\/ApiResponse.php.html#21\">App\\Traits\\ApiResponse::error<\/a>"],[0,1,"<a href=\"Traits\/ApiResponse.php.html#31\">App\\Traits\\ApiResponse::created<\/a>"],[0,1,"<a href=\"Traits\/ApiResponse.php.html#36\">App\\Traits\\ApiResponse::noContent<\/a>"],[100,1,"<a href=\"Traits\/ApiResponse.php.html#41\">App\\Traits\\ApiResponse::meta<\/a>"]], 'Method Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getComplexityData(data, label) {
+    var values = [];
+    $.each(data, function(key) {
+      var value = Math.round(data[key][0]*100) / 100;
+      values.push({
+        x: value,
+        y: data[key][1],
+        class: data[key][2],
+        size: 0.05,
+        shape: 'diamond'
+      });
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+});
+  </script>
+ </body>
+</html>

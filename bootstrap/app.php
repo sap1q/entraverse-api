@@ -18,10 +18,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/v1/admin/login',
             'api/v1/*',
+            'api/user-addresses',
+            'api/user-addresses/*',
+            'api/user/addresses',
+            'api/user/addresses/*',
+            'api/user',
+            'api/user/*',
+            'api/shipping/*',
+            'api/checkout/*',
+            'api/payment/*',
             // Backward-compatible API paths still used by some admin clients.
             'api/products/*',
             // Fallback when frontend base URL is configured without /api suffix.
             'v1/*',
+            'user',
+            'user/*',
+            'shipping/*',
+            'checkout/*',
+            'payment/*',
         ]);
 
         $middleware->api(prepend: [
@@ -33,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'admin.secure' => \App\Http\Middleware\AdminSecureHeader::class,
+            'customer' => \App\Http\Middleware\CustomerMiddleware::class,
         ]);
 
         //

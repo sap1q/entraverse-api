@@ -59,6 +59,7 @@ class UpdateProductRequest extends FormRequest
             'variant_pricing.*.shipping' => ['sometimes', 'nullable', 'in:Udara,Laut,Darat'],
             'variant_pricing.*.shipping_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'variant_pricing.*.arrival_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'variant_pricing.*.margin_percent' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99.99'],
             'variant_pricing.*.offline_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'variant_pricing.*.entraverse_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'variant_pricing.*.tokopedia_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],

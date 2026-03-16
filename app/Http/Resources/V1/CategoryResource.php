@@ -19,6 +19,7 @@ class CategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'margin_percent' => (float) ($this->margin_percent ?? $this->min_margin ?? 0),
             'min_margin' => (float) $this->min_margin,
             'program_garansi' => $this->program_garansi,
             'fees' => $this->fees,

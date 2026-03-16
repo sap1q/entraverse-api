@@ -6,20 +6,61 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\LogoutController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\CustomerOrderController;
+use App\Http\Controllers\Api\PaymentCallbackController;
+use App\Http\Controllers\Api\ShippingController;
+use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\V1\BannerController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Integration\JurnalSyncController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\RajaOngkirRegionController;
 use App\Http\Controllers\Api\V1\SalesOrderController;
+use App\Http\Controllers\Api\V1\StoreOriginController;
 use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\UserAddressController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['auth:sanctum', 'customer'])->prefix('shipping')->name('shipping.')->group(function (): void {
+    Route::post('cost', [ShippingController::class, 'cost'])->name('cost');
+});
+
+Route::middleware(['auth:sanctum', 'customer'])->prefix('checkout')->name('checkout.')->group(function (): void {
+    Route::post('process', [CheckoutController::class, 'process'])->name('process');
+});
+
+Route::middleware(['auth:sanctum', 'customer'])->prefix('orders')->name('orders.')->group(function (): void {
+    Route::get('/', [CustomerOrderController::class, 'index'])->name('index');
+    Route::get('{orderId}', [CustomerOrderController::class, 'show'])->name('show');
+    Route::post('{orderId}/payment', [CustomerOrderController::class, 'payment'])->name('payment');
+});
+
+Route::get('user/avatar/{user}', [UserProfileController::class, 'avatar'])->name('user.avatar.show');
+
+Route::middleware(['auth:sanctum', 'customer'])->group(function (): void {
+    Route::get('user', [UserProfileController::class, 'show'])->name('user.profile');
+    Route::match(['put', 'post'], 'user/update', [UserProfileController::class, 'update'])->name('user.update');
+});
+
+Route::prefix('payment')->name('payment.')->group(function (): void {
+    Route::post('callback', [PaymentCallbackController::class, 'callback'])->name('callback');
+});
+
+Route::prefix('rajaongkir')->name('rajaongkir.')->group(function (): void {
+    Route::get('provinces', [RajaOngkirRegionController::class, 'provinces'])->name('provinces');
+    Route::get('cities', [RajaOngkirRegionController::class, 'cities'])->name('cities');
+    Route::get('districts', [RajaOngkirRegionController::class, 'districts'])->name('districts');
+    Route::get('subdistricts', [RajaOngkirRegionController::class, 'subdistricts'])->name('subdistricts');
+    Route::get('origin', [RajaOngkirRegionController::class, 'origin'])->name('origin');
+});
+
 Route::prefix('v1')->group(function (): void {
     Route::prefix('products')->name('products.')->group(function (): void {
         Route::get('/', [ProductController::class, 'index'])->name('index');
+        Route::get('load-more', [ProductController::class, 'loadMore'])->name('load-more');
         Route::get('{product}', [ProductController::class, 'show'])->name('show');
     });
 
@@ -39,7 +80,12 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->prefix('user-addresses')->name('user-addresses.')->group(function (): void {
         Route::get('/', [UserAddressController::class, 'index'])->name('index');
+        Route::post('/', [UserAddressController::class, 'store'])->name('store');
         Route::patch('set-main', [UserAddressController::class, 'setMain'])->name('set-main');
+        Route::patch('{addressId}/set-main', [UserAddressController::class, 'setMain'])->name('set-main-by-id');
+        Route::put('{addressId}', [UserAddressController::class, 'update'])->name('update');
+        Route::patch('{addressId}', [UserAddressController::class, 'update'])->name('patch');
+        Route::delete('{addressId}', [UserAddressController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('admin')->name('admin.')->group(function (): void {
@@ -113,6 +159,12 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('{brand}', [BrandController::class, 'update'])->name('update.post');
                 Route::delete('{brand}', [BrandController::class, 'destroy'])->name('destroy');
             });
+
+            Route::prefix('shipping')->name('shipping.')->group(function (): void {
+                Route::get('origin', [StoreOriginController::class, 'show'])->name('origin.show');
+                Route::put('origin', [StoreOriginController::class, 'upsert'])->name('origin.upsert');
+                Route::patch('origin', [StoreOriginController::class, 'upsert'])->name('origin.patch');
+            });
         });
     });
 });
@@ -123,7 +175,16 @@ Route::middleware(['auth:sanctum', 'admin.secure', 'admin'])
 
 Route::middleware('auth:sanctum')->prefix('user-addresses')->name('user-addresses.compat.')->group(function (): void {
     Route::get('/', [UserAddressController::class, 'index'])->name('index');
+    Route::post('/', [UserAddressController::class, 'store'])->name('store');
     Route::patch('set-main', [UserAddressController::class, 'setMain'])->name('set-main');
+    Route::patch('{addressId}/set-main', [UserAddressController::class, 'setMain'])->name('set-main-by-id');
+    Route::put('{addressId}', [UserAddressController::class, 'update'])->name('update');
+    Route::patch('{addressId}', [UserAddressController::class, 'update'])->name('patch');
+    Route::delete('{addressId}', [UserAddressController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware('auth:sanctum')->prefix('user/addresses')->name('user-addresses.alt.')->group(function (): void {
+    Route::patch('{addressId}/set-main', [UserAddressController::class, 'setMain'])->name('set-main');
 });
 
 Route::prefix('v1/integrations/jurnal')->name('integrations.jurnal.')->group(function (): void {

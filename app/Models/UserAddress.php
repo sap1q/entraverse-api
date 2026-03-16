@@ -20,18 +20,27 @@ class UserAddress extends Model
 
     protected $fillable = [
         'user_id',
-        'label',
+        'address_label',
+        'province_id',
+        'city_id',
+        'district_id',
+        'subdistrict',
         'recipient_name',
-        'phone_number',
-        'address_line',
-        'city',
-        'province',
-        'postal_code',
-        'is_main',
+        'recipient_phone',
+        'address_detail',
+        'zip_code',
+        'location_note',
+        'latitude',
+        'longitude',
+        'is_default',
+        'is_active',
     ];
 
     protected $casts = [
-        'is_main' => 'boolean',
+        'is_default' => 'boolean',
+        'is_active' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -40,5 +49,19 @@ class UserAddress extends Model
     {
         return $this->belongsTo(User::class);
     }
-}
 
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_id');
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class, 'district_id');
+    }
+}

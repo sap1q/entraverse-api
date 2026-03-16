@@ -16,8 +16,7 @@ class SetMainUserAddressRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'address_id' => ['required', 'uuid'],
+            'address_id' => ['nullable', 'string', 'max:64'],
         ];
     }
 }
-

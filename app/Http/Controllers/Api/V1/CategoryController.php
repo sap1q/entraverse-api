@@ -134,11 +134,12 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         try {
-            $validated = $request->validate([
+            $request->validate([
                 'name' => 'required|string|max:255',
-                'min_margin' => 'required|numeric|min:0|max:100',
-                'fees' => 'nullable|json',
-                'program_garansi' => 'nullable|json',
+                'margin_percent' => 'nullable|numeric|min:0|max:99.99',
+                'min_margin' => 'nullable|numeric|min:0|max:99.99',
+                'fees' => 'nullable',
+                'program_garansi' => 'nullable',
                 'icon' => 'nullable|file|mimes:svg,png,jpg,jpeg,webp|max:5120',
                 'icon_svg' => 'nullable|string',
             ]);
@@ -147,25 +148,17 @@ class CategoryController extends Controller
 
             $data = [
                 'id' => (string) \Illuminate\Support\Str::uuid(),
-                'name' => $request->name,
-                'min_margin' => $request->min_margin,
+                'name' => trim((string) $request->input('name')),
             ];
 
-            // Handle fees
-            if ($request->filled('fees')) {
-                $data['fees'] = json_decode($request->fees, true);
-            } else {
-                $data['fees'] = [
-                    'marketplace' => ['components' => []],
-                    'shopee' => ['components' => []],
-                    'entraverse' => ['components' => []],
-                    'tokopedia_tiktok' => ['components' => []],
-                ];
-            }
+            $marginPercent = $this->resolveMarginPercent($request, true);
+            $data['margin_percent'] = $marginPercent;
+            $data['min_margin'] = $marginPercent;
+            $data['fees'] = $this->normalizeFeesPayload($this->decodeJsonInput($request->input('fees')));
 
-            // Handle program_garansi
-            if ($request->filled('program_garansi')) {
-                $data['program_garansi'] = json_decode($request->program_garansi, true);
+            $programGaransi = $this->decodeJsonInput($request->input('program_garansi'));
+            if (! is_null($programGaransi)) {
+                $data['program_garansi'] = $programGaransi;
             }
 
             // Handle icon
@@ -249,11 +242,12 @@ class CategoryController extends Controller
                 ], 404);
             }
 
-            $validated = $request->validate([
+            $request->validate([
                 'name' => 'sometimes|string|max:255',
-                'min_margin' => 'sometimes|numeric|min:0|max:100',
-                'fees' => 'nullable|json',
-                'program_garansi' => 'nullable|json',
+                'margin_percent' => 'sometimes|numeric|min:0|max:99.99',
+                'min_margin' => 'sometimes|numeric|min:0|max:99.99',
+                'fees' => 'nullable',
+                'program_garansi' => 'nullable',
                 'icon' => 'nullable|file|mimes:svg,png,jpg,jpeg,webp|max:5120',
                 'icon_svg' => 'nullable|string',
                 'remove_icon' => 'nullable|boolean',
@@ -264,19 +258,24 @@ class CategoryController extends Controller
             $data = [];
 
             if ($request->has('name')) {
-                $data['name'] = $request->name;
+                $data['name'] = trim((string) $request->input('name'));
             }
 
-            if ($request->has('min_margin')) {
-                $data['min_margin'] = $request->min_margin;
+            if ($request->has('margin_percent') || $request->has('min_margin')) {
+                $marginPercent = $this->resolveMarginPercent($request, false);
+                if (! is_null($marginPercent)) {
+                    $data['margin_percent'] = $marginPercent;
+                    $data['min_margin'] = $marginPercent;
+                }
             }
 
-            if ($request->filled('fees')) {
-                $data['fees'] = json_decode($request->fees, true);
+            if ($request->has('fees')) {
+                $data['fees'] = $this->normalizeFeesPayload($this->decodeJsonInput($request->input('fees')));
             }
 
-            if ($request->filled('program_garansi')) {
-                $data['program_garansi'] = json_decode($request->program_garansi, true);
+            if ($request->has('program_garansi')) {
+                $programGaransi = $this->decodeJsonInput($request->input('program_garansi'));
+                $data['program_garansi'] = $programGaransi;
             }
 
             // Handle icon update
@@ -555,5 +554,221 @@ class CategoryController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function resolveMarginPercent(Request $request, bool $required): ?float
+    {
+        $rawMargin = $request->input('margin_percent', $request->input('min_margin'));
+        if (is_null($rawMargin) || $rawMargin === '') {
+            if ($required) {
+                return 0.0;
+            }
+
+            return null;
+        }
+
+        return max(0, round((float) $rawMargin, 2));
+    }
+
+    private function decodeJsonInput(mixed $value): mixed
+    {
+        if (is_null($value) || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        return $value;
+    }
+
+    private function normalizeFeeChannel(mixed $channel): array
+    {
+        $components = [];
+
+        if (is_array($channel)) {
+            $source = $channel['components'] ?? [];
+            if (is_array($source)) {
+                foreach ($source as $component) {
+                    if (! is_array($component)) {
+                        continue;
+                    }
+
+                    $valueType = $this->normalizeValueType($component['valueType'] ?? 'percent');
+
+                    $components[] = [
+                        'id' => isset($component['id']) ? (string) $component['id'] : null,
+                        'label' => trim((string) ($component['label'] ?? '')),
+                        'value' => $valueType === 'amount'
+                            ? $this->parseRupiahAmount($component['value'] ?? 0)
+                            : $this->parseDecimalNumber($component['value'] ?? 0),
+                        'valueType' => $valueType,
+                        'min' => $this->parseRupiahAmount($component['min'] ?? 0),
+                        'max' => $this->parseRupiahAmount($component['max'] ?? 0),
+                        'notes' => isset($component['notes']) ? (string) $component['notes'] : null,
+                    ];
+                }
+            }
+        }
+
+        return ['components' => $components];
+    }
+
+    private function normalizeFeesPayload(mixed $rawFees): array
+    {
+        $fees = is_array($rawFees) ? $rawFees : [];
+        $defaults = $this->defaultFees();
+
+        $tokopediaSource = $this->pickFeeSource($fees, ['marketplace', 'tokopedia', 'tokopedia_tiktok']);
+
+        $normalized = [
+            'entraverse' => $this->normalizeFeeChannel($fees['entraverse'] ?? null),
+            'tokopedia' => $this->normalizeFeeChannel($tokopediaSource),
+            'shopee' => $this->normalizeFeeChannel($fees['shopee'] ?? null),
+        ];
+
+        // Backward compatibility for legacy consumers.
+        $normalized['marketplace'] = $normalized['tokopedia'];
+        $normalized['tokopedia_tiktok'] = $normalized['tokopedia'];
+
+        return array_replace($defaults, $normalized);
+    }
+
+    private function defaultFees(): array
+    {
+        return [
+            'entraverse' => ['components' => []],
+            'tokopedia' => ['components' => []],
+            'shopee' => ['components' => []],
+            'marketplace' => ['components' => []],
+            'tokopedia_tiktok' => ['components' => []],
+        ];
+    }
+
+    private function pickFeeSource(array $fees, array $keys): mixed
+    {
+        $fallback = null;
+
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $fees)) {
+                continue;
+            }
+
+            $candidate = $fees[$key];
+            if (! is_array($candidate)) {
+                continue;
+            }
+
+            $fallback ??= $candidate;
+
+            if ($this->hasFeeComponents($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $fallback;
+    }
+
+    private function hasFeeComponents(mixed $channel): bool
+    {
+        if (! is_array($channel)) {
+            return false;
+        }
+
+        $components = $channel['components'] ?? null;
+        if (! is_array($components)) {
+            return false;
+        }
+
+        foreach ($components as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $label = trim((string) ($component['label'] ?? ''));
+            $valueType = $this->normalizeValueType($component['valueType'] ?? 'percent');
+            $value = $valueType === 'amount'
+                ? $this->parseRupiahAmount($component['value'] ?? 0)
+                : $this->parseDecimalNumber($component['value'] ?? 0);
+            $min = $this->parseRupiahAmount($component['min'] ?? 0);
+            $max = $this->parseRupiahAmount($component['max'] ?? 0);
+
+            if ($label !== '' || $value > 0 || $min > 0 || $max > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeValueType(mixed $valueType): string
+    {
+        $normalized = strtolower(trim((string) $valueType));
+        if (in_array($normalized, ['amount', 'rp', 'rupiah'], true)) {
+            return 'amount';
+        }
+
+        return 'percent';
+    }
+
+    private function parseDecimalNumber(mixed $value): float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) max(0, $value);
+        }
+
+        if (! is_string($value)) {
+            return 0.0;
+        }
+
+        $normalized = preg_replace('/[^0-9,.\-]/', '', trim($value)) ?? '';
+        if ($normalized === '' || $normalized === '-' || $normalized === '.' || $normalized === ',') {
+            return 0.0;
+        }
+
+        if (str_contains($normalized, ',') && str_contains($normalized, '.')) {
+            $lastComma = strrpos($normalized, ',');
+            $lastDot = strrpos($normalized, '.');
+            if ($lastComma !== false && $lastDot !== false && $lastComma > $lastDot) {
+                $normalized = str_replace('.', '', $normalized);
+                $normalized = str_replace(',', '.', $normalized);
+            } else {
+                $normalized = str_replace(',', '', $normalized);
+            }
+        } elseif (str_contains($normalized, ',') && ! str_contains($normalized, '.')) {
+            $normalized = str_replace(',', '.', $normalized);
+        } elseif (substr_count($normalized, '.') > 1) {
+            $normalized = str_replace('.', '', $normalized);
+        }
+
+        return is_numeric($normalized) ? max(0, (float) $normalized) : 0.0;
+    }
+
+    private function parseRupiahAmount(mixed $value): float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) round(max(0, $value));
+        }
+
+        if (! is_string($value)) {
+            return 0.0;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        if ($digits === '') {
+            return 0.0;
+        }
+
+        return (float) round((float) $digits);
     }
 }

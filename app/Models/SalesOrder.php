@@ -20,6 +20,7 @@ class SalesOrder extends Model
 
     protected $fillable = [
         'order_number',
+        'user_id',
         'customer_name',
         'customer_phone',
         'customer_email',
@@ -31,6 +32,22 @@ class SalesOrder extends Model
         'discount_amount',
         'total_amount',
         'notes',
+        'payment_method',
+        'payment_status',
+        'payment_reference',
+        'snap_token',
+        'payment_payload',
+        'settled_at',
+        'shipping_courier',
+        'shipping_service',
+        'shipping_etd',
+        'shipping_weight',
+        'shipping_destination_city_id',
+        'shipping_metadata',
+        'jurnal_invoice_id',
+        'jurnal_sync_status',
+        'jurnal_sync_message',
+        'jurnal_synced_at',
         'created_by',
         'updated_by',
     ];
@@ -40,6 +57,11 @@ class SalesOrder extends Model
         'shipping_cost' => 'float',
         'discount_amount' => 'float',
         'total_amount' => 'float',
+        'payment_payload' => 'array',
+        'shipping_metadata' => 'array',
+        'shipping_weight' => 'integer',
+        'settled_at' => 'datetime',
+        'jurnal_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -58,5 +80,9 @@ class SalesOrder extends Model
     {
         return $this->belongsTo(Admin::class, 'updated_by');
     }
-}
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
