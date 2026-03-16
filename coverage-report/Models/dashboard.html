@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for C:\Users\User\Documents\Kerjaan Entraverse\Project\entraver\entraverse-api\app\Models</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../_css/bootstrap.min.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="../_css/nv.d3.min.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="../_css/style.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../index.html">C:\Users\User\Documents\Kerjaan Entraverse\Project\entraver\entraverse-api\app</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Models</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Classes</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="classCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="classComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="ProductVariant.php.html#12">App\Models\ProductVariant</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrder.php.html#13">App\Models\SalesOrder</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrderItem.php.html#12">App\Models\SalesOrderItem</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="StockMutation.php.html#12">App\Models\StockMutation</a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#13">App\Models\Category</a></td><td class="text-right">11%</td></tr>
+       <tr><td><a href="Product.php.html#11">App\Models\Product</a></td><td class="text-right">20%</td></tr>
+       <tr><td><a href="Admin.php.html#12">App\Models\Admin</a></td><td class="text-right">66%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Category.php.html#13">App\Models\Category</a></td><td class="text-right">539</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Methods</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="methodCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="methodComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Admin.php.html#39"><abbr title="App\Models\Admin::stockMutations">stockMutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Admin.php.html#44"><abbr title="App\Models\Admin::salesOrdersCreated">salesOrdersCreated</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#50"><abbr title="App\Models\Category::getIconAttribute">getIconAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#61"><abbr title="App\Models\Category::getFormattedFeesAttribute">getFormattedFeesAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#74"><abbr title="App\Models\Category::getFeeMarketplace">getFeeMarketplace</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#84"><abbr title="App\Models\Category::getFeeShopee">getFeeShopee</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#94"><abbr title="App\Models\Category::getFeeEntraverse">getFeeEntraverse</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#104"><abbr title="App\Models\Category::getFeeTokopediaTiktok">getFeeTokopediaTiktok</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#114"><abbr title="App\Models\Category::storeSvgFile">storeSvgFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#125"><abbr title="App\Models\Category::setIconFromFile">setIconFromFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#139"><abbr title="App\Models\Category::setIconFromRaw">setIconFromRaw</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#152"><abbr title="App\Models\Category::deleteIconFile">deleteIconFile</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#168"><abbr title="App\Models\Category::getSvgContent">getSvgContent</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#189"><abbr title="App\Models\Category::calculateTotalFees">calculateTotalFees</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#204"><abbr title="App\Models\Category::hasFees">hasFees</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#212"><abbr title="App\Models\Category::scopeActive">scopeActive</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#220"><abbr title="App\Models\Category::scopeSearch">scopeSearch</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#228"><abbr title="App\Models\Category::scopeMinMargin">scopeMinMargin</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Product.php.html#71"><abbr title="App\Models\Product::getTotalStockAttribute">getTotalStockAttribute</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Product.php.html#76"><abbr title="App\Models\Product::productVariants">productVariants</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Product.php.html#81"><abbr title="App\Models\Product::stockMutations">stockMutations</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Product.php.html#86"><abbr title="App\Models\Product::salesOrderItems">salesOrderItems</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ProductVariant.php.html#37"><abbr title="App\Models\ProductVariant::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrder.php.html#47"><abbr title="App\Models\SalesOrder::items">items</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrder.php.html#52"><abbr title="App\Models\SalesOrder::creator">creator</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrder.php.html#57"><abbr title="App\Models\SalesOrder::updater">updater</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrderItem.php.html#44"><abbr title="App\Models\SalesOrderItem::order">order</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="SalesOrderItem.php.html#49"><abbr title="App\Models\SalesOrderItem::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="StockMutation.php.html#36"><abbr title="App\Models\StockMutation::product">product</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="StockMutation.php.html#41"><abbr title="App\Models\StockMutation::admin">admin</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="Category.php.html#236"><abbr title="App\Models\Category::boot">boot</abbr></a></td><td class="text-right">50%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="Category.php.html#168"><abbr title="App\Models\Category::getSvgContent">getSvgContent</abbr></a></td><td class="text-right">42</td></tr>
+       <tr><td><a href="Category.php.html#152"><abbr title="App\Models\Category::deleteIconFile">deleteIconFile</abbr></a></td><td class="text-right">20</td></tr>
+       <tr><td><a href="Category.php.html#189"><abbr title="App\Models\Category::calculateTotalFees">calculateTotalFees</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="Category.php.html#236"><abbr title="App\Models\Category::boot">boot</abbr></a></td><td class="text-right">2</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.12</a> using <a href="https://www.php.net/" target="_top">PHP 8.3.30</a> and <a href="https://phpunit.de/">PHPUnit 11.5.50</a> at Thu Mar 5 9:59:04 WIB 2026.</small>
+    </p>
+   </footer>
+  </div>
+  <script src="../_js/jquery.min.js?v=11.0.12" type="text/javascript"></script>
+  <script src="../_js/d3.min.js?v=11.0.12" type="text/javascript"></script>
+  <script src="../_js/nv.d3.min.js?v=11.0.12" type="text/javascript"></script>
+  <script type="text/javascript">
+$(document).ready(function() {
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#classCoverageDistribution svg')
+      .datum(getCoverageDistributionData([4,0,1,1,0,0,0,1,0,0,0,1], "Class Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#methodCoverageDistribution svg')
+      .datum(getCoverageDistributionData([30,0,0,0,0,0,1,0,0,0,0,3], "Method Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getCoverageDistributionData(data, label) {
+    var labels = [
+      '0%',
+      '0-10%',
+      '10-20%',
+      '20-30%',
+      '30-40%',
+      '40-50%',
+      '50-60%',
+      '60-70%',
+      '70-80%',
+      '80-90%',
+      '90-100%',
+      '100%'
+    ];
+    var values = [];
+    $.each(labels, function(key) {
+      values.push({x: labels[key], y: data[key]});
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Cyclomatic Complexity');
+
+    d3.select('#classComplexity svg')
+      .datum(getComplexityData([[66.66666666666666,3,"<a href=\"Admin.php.html#12\">App\\Models\\Admin<\/a>"],[11.11111111111111,27,"<a href=\"Category.php.html#13\">App\\Models\\Category<\/a>"],[20,5,"<a href=\"Product.php.html#11\">App\\Models\\Product<\/a>"],[0,1,"<a href=\"ProductVariant.php.html#12\">App\\Models\\ProductVariant<\/a>"],[0,3,"<a href=\"SalesOrder.php.html#13\">App\\Models\\SalesOrder<\/a>"],[0,2,"<a href=\"SalesOrderItem.php.html#12\">App\\Models\\SalesOrderItem<\/a>"],[0,2,"<a href=\"StockMutation.php.html#12\">App\\Models\\StockMutation<\/a>"],[100,1,"<a href=\"User.php.html#12\">App\\Models\\User<\/a>"]], 'Class Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Method Complexity');
+
+    d3.select('#methodComplexity svg')
+      .datum(getComplexityData([[100,1,"<a href=\"Admin.php.html#31\">App\\Models\\Admin::casts<\/a>"],[0,1,"<a href=\"Admin.php.html#39\">App\\Models\\Admin::stockMutations<\/a>"],[0,1,"<a href=\"Admin.php.html#44\">App\\Models\\Admin::salesOrdersCreated<\/a>"],[0,1,"<a href=\"Category.php.html#50\">App\\Models\\Category::getIconAttribute<\/a>"],[0,1,"<a href=\"Category.php.html#61\">App\\Models\\Category::getFormattedFeesAttribute<\/a>"],[0,1,"<a href=\"Category.php.html#74\">App\\Models\\Category::getFeeMarketplace<\/a>"],[0,1,"<a href=\"Category.php.html#84\">App\\Models\\Category::getFeeShopee<\/a>"],[0,1,"<a href=\"Category.php.html#94\">App\\Models\\Category::getFeeEntraverse<\/a>"],[0,1,"<a href=\"Category.php.html#104\">App\\Models\\Category::getFeeTokopediaTiktok<\/a>"],[0,1,"<a href=\"Category.php.html#114\">App\\Models\\Category::storeSvgFile<\/a>"],[0,1,"<a href=\"Category.php.html#125\">App\\Models\\Category::setIconFromFile<\/a>"],[0,1,"<a href=\"Category.php.html#139\">App\\Models\\Category::setIconFromRaw<\/a>"],[0,4,"<a href=\"Category.php.html#152\">App\\Models\\Category::deleteIconFile<\/a>"],[0,6,"<a href=\"Category.php.html#168\">App\\Models\\Category::getSvgContent<\/a>"],[0,2,"<a href=\"Category.php.html#189\">App\\Models\\Category::calculateTotalFees<\/a>"],[0,1,"<a href=\"Category.php.html#204\">App\\Models\\Category::hasFees<\/a>"],[0,1,"<a href=\"Category.php.html#212\">App\\Models\\Category::scopeActive<\/a>"],[0,1,"<a href=\"Category.php.html#220\">App\\Models\\Category::scopeSearch<\/a>"],[0,1,"<a href=\"Category.php.html#228\">App\\Models\\Category::scopeMinMargin<\/a>"],[50,2,"<a href=\"Category.php.html#236\">App\\Models\\Category::boot<\/a>"],[0,1,"<a href=\"Product.php.html#71\">App\\Models\\Product::getTotalStockAttribute<\/a>"],[0,1,"<a href=\"Product.php.html#76\">App\\Models\\Product::productVariants<\/a>"],[0,1,"<a href=\"Product.php.html#81\">App\\Models\\Product::stockMutations<\/a>"],[0,1,"<a href=\"Product.php.html#86\">App\\Models\\Product::salesOrderItems<\/a>"],[100,1,"<a href=\"Product.php.html#91\">App\\Models\\Product::category<\/a>"],[0,1,"<a href=\"ProductVariant.php.html#37\">App\\Models\\ProductVariant::product<\/a>"],[0,1,"<a href=\"SalesOrder.php.html#47\">App\\Models\\SalesOrder::items<\/a>"],[0,1,"<a href=\"SalesOrder.php.html#52\">App\\Models\\SalesOrder::creator<\/a>"],[0,1,"<a href=\"SalesOrder.php.html#57\">App\\Models\\SalesOrder::updater<\/a>"],[0,1,"<a href=\"SalesOrderItem.php.html#44\">App\\Models\\SalesOrderItem::order<\/a>"],[0,1,"<a href=\"SalesOrderItem.php.html#49\">App\\Models\\SalesOrderItem::product<\/a>"],[0,1,"<a href=\"StockMutation.php.html#36\">App\\Models\\StockMutation::product<\/a>"],[0,1,"<a href=\"StockMutation.php.html#41\">App\\Models\\StockMutation::admin<\/a>"],[100,1,"<a href=\"User.php.html#46\">App\\Models\\User::casts<\/a>"]], 'Method Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getComplexityData(data, label) {
+    var values = [];
+    $.each(data, function(key) {
+      var value = Math.round(data[key][0]*100) / 100;
+      values.push({
+        x: value,
+        y: data[key][1],
+        class: data[key][2],
+        size: 0.05,
+        shape: 'diamond'
+      });
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+});
+  </script>
+ </body>
+</html>

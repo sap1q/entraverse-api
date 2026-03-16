@@ -1,0 +1,3 @@
+# Coverage history
+# Format: timestamp\tvalue
+2026-03-05 10:08:59	                                                                                                         Total: 18.3 %  
