@@ -20,6 +20,8 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $marginPercent = $this->faker->randomFloat(2, 0, 25);
+
         return [
             'id' => (string) Str::uuid(),
             'name' => $this->faker->unique()->words(2, true),
@@ -31,7 +33,8 @@ class CategoryFactory extends Factory
                 'tokopedia_tiktok' => ['components' => []],
             ],
             'program_garansi' => json_encode([], JSON_THROW_ON_ERROR),
-            'min_margin' => $this->faker->randomFloat(2, 0, 25),
+            'min_margin' => $marginPercent,
+            'margin_percent' => $marginPercent,
         ];
     }
 

@@ -17,8 +17,8 @@ class ProductService
     private const DEFAULT_WAREHOUSE = 'Gudang Utama';
     private const DEFAULT_WARRANTY_VARIANT_NAME = 'Garansi';
     private const DEFAULT_WARRANTY_OPTIONS = ['Tanpa Garansi', 'Toko - 1 Tahun'];
-    private const DEFAULT_CURRENCY_SURCHARGE = 50.0;
-    private const CURRENCIES_WITH_SURCHARGE = ['USD', 'SGD'];
+    private const WARRANTY_COST_LABEL = 'biaya program garansi';
+    private const WARRANTY_PROFIT_LABEL = 'keuntungan program garansi';
     private const ACTIVATED_SYNC_STATUSES = [
         'activate',
         'active',
@@ -62,17 +62,25 @@ class ProductService
                     return;
                 }
 
+                $brandIdTokens = $brandTokens
+                    ->filter(fn (string $token) => Str::isUuid($token))
+                    ->values();
                 $normalized = $brandTokens->map(fn (string $token) => strtolower($token))->all();
 
-                $query->where(function (Builder $nested) use ($brandTokens, $normalized) {
-                    $nested
-                        ->whereIn('brand_id', $brandTokens->all())
-                        ->orWhereIn(DB::raw('LOWER(brand)'), $normalized)
-                        ->orWhereHas('brandModel', function (Builder $brandQuery) use ($normalized) {
-                            $brandQuery
-                                ->whereIn(DB::raw('LOWER(slug)'), $normalized)
-                                ->orWhereIn(DB::raw('LOWER(name)'), $normalized);
-                        });
+                $query->where(function (Builder $nested) use ($brandIdTokens, $normalized) {
+                    if ($brandIdTokens->isNotEmpty()) {
+                        $nested
+                            ->whereIn('brand_id', $brandIdTokens->all())
+                            ->orWhereIn(DB::raw('LOWER(brand)'), $normalized);
+                    } else {
+                        $nested->whereIn(DB::raw('LOWER(brand)'), $normalized);
+                    }
+
+                    $nested->orWhereHas('brandModel', function (Builder $brandQuery) use ($normalized) {
+                        $brandQuery
+                            ->whereIn(DB::raw('LOWER(slug)'), $normalized)
+                            ->orWhereIn(DB::raw('LOWER(name)'), $normalized);
+                    });
                 });
             })
             ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
@@ -243,6 +251,7 @@ class ProductService
             $item['stock'] = (int) array_sum($warehouseStock);
             $item['purchase_price'] = (float) ($item['purchase_price'] ?? 0);
             $item['purchase_price_idr'] = (float) ($item['purchase_price_idr'] ?? 0);
+            $item['margin_percent'] = (float) ($item['margin_percent'] ?? 0);
 
             $normalized[] = $this->normalizeArray($item);
         }
@@ -299,58 +308,74 @@ class ProductService
             return $variantPricing;
         }
 
-        $minMarginPercent = max(0, $this->toFloat($category->min_margin));
+        $minMarginPercent = max(0, $this->toFloat($category->margin_percent ?? $category->min_margin));
         $fees = is_array($category->fees) ? $category->fees : [];
-        $warrantyComponents = $this->extractWarrantyComponents($category->program_garansi);
-        $marketplaceChannel = $this->resolveFeeChannel($fees, ['marketplace', 'tokopedia_tiktok']);
+        $warrantyConfig = $this->extractWarrantyConfig($category->program_garansi);
+        $tokopediaChannel = $this->resolveFeeChannel($fees, ['tokopedia', 'tokopedia_tiktok', 'marketplace']);
         $shopeeChannel = $this->resolveFeeChannel($fees, ['shopee']);
         $entraverseChannel = $this->resolveFeeChannel($fees, ['entraverse']);
 
         if (($entraverseChannel['components'] ?? []) === []) {
-            // Fallback: jika fee Entraverse belum diisi, ikutkan fee marketplace lebih dulu.
-            $entraverseChannel = $marketplaceChannel;
+            $entraverseChannel = ['components' => []];
         }
 
         return array_map(function (array $item) use (
             $minMarginPercent,
-            $marketplaceChannel,
+            $tokopediaChannel,
             $shopeeChannel,
             $entraverseChannel,
-            $warrantyComponents
+            $warrantyConfig
         ): array {
             $purchasePrice = max(0, $this->toFloat($item['purchase_price'] ?? 0));
             $exchangeValue = max(0, $this->toFloat($item['exchange_value'] ?? ($item['exchange_rate'] ?? 0)));
             $arrivalCost = max(0, $this->toFloat($item['arrival_cost'] ?? 0));
-            $shippingCost = max(0, $this->toFloat($item['shipping_cost'] ?? 0));
-            $currency = strtoupper(trim((string) ($item['currency'] ?? '')));
-            $currencySurcharge = in_array($currency, self::CURRENCIES_WITH_SURCHARGE, true)
-                ? self::DEFAULT_CURRENCY_SURCHARGE
-                : 0.0;
-
-            $landedCost = ($purchasePrice * $exchangeValue) + $arrivalCost + $shippingCost;
-            $baseRecommended = round(($landedCost + $currencySurcharge) * (1 + ($minMarginPercent / 100)));
+            $fixedCost = max(0, $this->toFloat($item['shipping_cost'] ?? 0));
+            $marginPercent = $minMarginPercent;
+            $purchasePriceIdr = round(($purchasePrice * $exchangeValue) + $arrivalCost);
 
             $warrantyOption = $this->extractWarrantyOption($item);
-            $warrantyAdjustment = $this->calculateWarrantyAdjustment(
-                $warrantyComponents,
-                $warrantyOption,
-                $baseRecommended
+            $entraverseFee = $this->calculateFeeTotals($entraverseChannel, $purchasePriceIdr);
+            $tokopediaFee = $this->calculateFeeTotals($tokopediaChannel, $purchasePriceIdr);
+            $shopeeFee = $this->calculateFeeTotals($shopeeChannel, $purchasePriceIdr);
+
+            $offlineBase = $this->calculateSellingPrice($purchasePriceIdr, 0, $marginPercent / 100, 0);
+            $entraverseBase = $this->calculateSellingPrice(
+                $purchasePriceIdr,
+                $entraverseFee['fixed_total'],
+                $marginPercent / 100,
+                $entraverseFee['percent_total'],
             );
-            $baseWithWarranty = max(0, $baseRecommended + $warrantyAdjustment);
+            $tokopediaBase = $this->calculateSellingPrice(
+                $purchasePriceIdr,
+                $tokopediaFee['fixed_total'],
+                $marginPercent / 100,
+                $tokopediaFee['percent_total'],
+            );
+            $shopeeBase = $this->calculateSellingPrice(
+                $purchasePriceIdr,
+                $shopeeFee['fixed_total'],
+                $marginPercent / 100,
+                $shopeeFee['percent_total'],
+            );
 
-            $entraverseFee = $this->calculateFeeTotals($entraverseChannel, $baseWithWarranty);
-            $tokopediaFee = $this->calculateFeeTotals($marketplaceChannel, $baseWithWarranty);
-            $shopeeFee = $this->calculateFeeTotals($shopeeChannel, $baseWithWarranty);
+            $offlineWithWarranty = $this->applyWarrantyMultiplier($warrantyOption, $offlineBase);
+            $entraverseWithWarranty = $this->applyWarrantyMultiplier($warrantyOption, $entraverseBase);
+            $tokopediaWithWarranty = $this->applyWarrantyMultiplier($warrantyOption, $tokopediaBase);
+            $shopeeWithWarranty = $this->applyWarrantyMultiplier($warrantyOption, $shopeeBase);
 
-            $item['purchase_price_idr'] = (float) round($landedCost);
-            $item['offline_price'] = (float) round($baseWithWarranty);
-            $item['entraverse_price'] = (float) round($baseWithWarranty + $entraverseFee['amount_total']);
-            $item['tokopedia_price'] = (float) round($baseWithWarranty + $tokopediaFee['amount_total']);
-            $item['tiktok_price'] = (float) round($baseWithWarranty + $tokopediaFee['amount_total']);
-            $item['shopee_price'] = (float) round($baseWithWarranty + $shopeeFee['amount_total']);
-            $item['tokopedia_fee'] = (float) $tokopediaFee['percent_total'];
-            $item['tiktok_fee'] = (float) $tokopediaFee['percent_total'];
-            $item['shopee_fee'] = (float) $shopeeFee['percent_total'];
+            $item['exchange_rate'] = (float) round($exchangeValue, 4);
+            $item['arrival_cost'] = (float) round($arrivalCost);
+            $item['shipping_cost'] = (float) round($fixedCost);
+            $item['margin_percent'] = (float) round($marginPercent, 4);
+            $item['purchase_price_idr'] = (float) round($purchasePriceIdr);
+            $item['offline_price'] = (float) $this->applyPriceRounding($offlineWithWarranty);
+            $item['entraverse_price'] = (float) $this->applyPriceRounding($entraverseWithWarranty);
+            $item['tokopedia_price'] = (float) $this->applyPriceRounding($tokopediaWithWarranty);
+            $item['tiktok_price'] = (float) $this->applyPriceRounding($tokopediaWithWarranty);
+            $item['shopee_price'] = (float) $this->applyPriceRounding($shopeeWithWarranty);
+            $item['tokopedia_fee'] = (float) $tokopediaFee['percent_display'];
+            $item['tiktok_fee'] = (float) $tokopediaFee['percent_display'];
+            $item['shopee_fee'] = (float) $shopeeFee['percent_display'];
 
             return $item;
         }, $variantPricing);
@@ -358,83 +383,321 @@ class ProductService
 
     private function resolveFeeChannel(array $fees, array $keys): array
     {
+        $fallback = null;
+
         foreach ($keys as $key) {
             $candidate = $fees[$key] ?? null;
             if (is_array($candidate)) {
-                return $candidate;
+                $fallback ??= $candidate;
+                if ($this->hasFeeComponents($candidate)) {
+                    return $candidate;
+                }
             }
         }
 
-        return ['components' => []];
+        return $fallback ?? ['components' => []];
     }
 
-    private function calculateFeeTotals(array $channel, float $basePrice): array
+    private function hasFeeComponents(array $channel): bool
     {
-        $components = is_array($channel['components'] ?? null) ? $channel['components'] : [];
-        $amountTotal = 0.0;
-        $percentTotal = 0.0;
+        $components = $channel['components'] ?? null;
+        if (! is_array($components)) {
+            return false;
+        }
 
         foreach ($components as $component) {
             if (! is_array($component)) {
                 continue;
             }
 
-            $value = max(0, $this->toFloat($component['value'] ?? 0));
-            $minValue = max(0, $this->toFloat($component['min'] ?? 0));
-            $maxValue = max(0, $this->toFloat($component['max'] ?? 0));
+            $label = trim((string) ($component['label'] ?? ''));
             $valueType = strtolower(trim((string) ($component['valueType'] ?? 'percent')));
             $isAmount = $valueType === 'amount' || $valueType === 'rp';
-            $fee = $isAmount ? $value : ($basePrice * ($value / 100));
+            $value = $isAmount
+                ? $this->parseRupiahAmount($component['value'] ?? 0)
+                : max(0, $this->toFloat($component['value'] ?? 0));
+            $min = $this->parseRupiahAmount($component['min'] ?? 0);
+            $max = $this->parseRupiahAmount($component['max'] ?? 0);
 
-            if ($minValue > 0) {
-                $fee = max($fee, $minValue);
-            }
-            if ($maxValue > 0) {
-                $fee = min($fee, $maxValue);
-            }
-
-            $amountTotal += max(0, $fee);
-            if (! $isAmount) {
-                $percentTotal += $value;
+            if ($label !== '' || $value > 0 || $min > 0 || $max > 0) {
+                return true;
             }
         }
 
-        return [
-            'amount_total' => round($amountTotal),
-            'percent_total' => round($percentTotal, 4),
-        ];
+        return false;
     }
 
-    private function extractWarrantyComponents(mixed $programGaransi): array
+    private function resolveFeeSummaryPercent(array $channel): float
     {
-        $components = [];
-        $push = function (array $component) use (&$components): void {
-            $label = $this->normalizeLabel((string) ($component['label'] ?? ''));
-            if ($label === '') {
-                return;
-            }
+        $summary = is_array($channel['summary'] ?? null) ? $channel['summary'] : [];
+        $candidates = [
+            $channel['percent'] ?? null,
+            $channel['rate'] ?? null,
+            $channel['percentage'] ?? null,
+            $channel['total_percent'] ?? null,
+            $channel['totalPercent'] ?? null,
+            $channel['summary'] ?? null,
+            $summary['percent'] ?? null,
+            $summary['rate'] ?? null,
+            $summary['percentage'] ?? null,
+            $summary['total_percent'] ?? null,
+            $summary['totalPercent'] ?? null,
+            $summary['value'] ?? null,
+        ];
 
-            $dedupeKey = strtolower($label);
-            foreach ($components as $existing) {
-                if (($existing['key'] ?? '') === $dedupeKey) {
-                    return;
+        foreach ($candidates as $candidate) {
+            if (is_numeric($candidate) || is_string($candidate)) {
+                $resolved = max(0, $this->toFloat($candidate));
+                if ($resolved > 0) {
+                    return $resolved;
                 }
+            }
+        }
+
+        return 0.0;
+    }
+
+    private function calculateFeeTotals(array $channel, float $purchasePriceIdr): array
+    {
+        $components = is_array($channel['components'] ?? null) ? $channel['components'] : [];
+        $safePurchasePrice = max(0, $purchasePriceIdr);
+        $fixedTotal = 0.0;
+        $percentTotal = 0.0;
+
+        if ($components === []) {
+            $summaryPercent = $this->resolveFeeSummaryPercent($channel);
+
+            return [
+                'fixed_total' => 0.0,
+                'percent_total' => $summaryPercent / 100,
+                'percent_display' => $summaryPercent,
+            ];
+        }
+
+        foreach ($components as $component) {
+            if (! is_array($component)) {
+                continue;
             }
 
             $valueType = strtolower(trim((string) ($component['valueType'] ?? 'percent')));
-            $components[] = [
-                'key' => $dedupeKey,
-                'label' => $label,
-                'valueType' => $valueType === 'amount' ? 'amount' : 'percent',
-                'value' => max(0, $this->toFloat($component['value'] ?? 0)),
+            $isAmount = $valueType === 'amount' || $valueType === 'rp';
+            $value = $isAmount
+                ? $this->parseRupiahAmount($component['value'] ?? 0)
+                : max(0, $this->toFloat($component['value'] ?? 0));
+            $minValue = $this->parseRupiahAmount($component['min'] ?? 0);
+            $maxValue = $this->parseRupiahAmount($component['max'] ?? 0);
+
+            if ($isAmount) {
+                $fee = $value;
+
+                if ($minValue > 0) {
+                    $fee = max($fee, $minValue);
+                }
+                if ($maxValue > 0) {
+                    $fee = min($fee, $maxValue);
+                }
+
+                $fixedTotal += max(0, $fee);
+                continue;
+            }
+
+            $effectiveRate = $value / 100;
+
+            if ($safePurchasePrice > 0) {
+                if ($maxValue > 0) {
+                    $effectiveRate = min($effectiveRate, $maxValue / $safePurchasePrice);
+                }
+                if ($minValue > 0) {
+                    $effectiveRate = max($effectiveRate, $minValue / $safePurchasePrice);
+                }
+            }
+
+            $percentTotal += max(0, $effectiveRate);
+        }
+
+        return [
+            'fixed_total' => round($fixedTotal),
+            'percent_total' => round($percentTotal, 6),
+            'percent_display' => round($percentTotal * 100, 4),
+        ];
+    }
+
+    private function calculateSellingPrice(
+        float $purchasePriceIdr,
+        float $fixedFeeAmount,
+        float $marginRate,
+        float $platformFeePercent,
+    ): float {
+        $safePurchasePrice = max(0, $purchasePriceIdr);
+        $safeFixedFee = max(0, $fixedFeeAmount);
+        $denominator = 1 - max(0, $marginRate) - max(0, $platformFeePercent);
+
+        if ($denominator <= 0) {
+            return $safePurchasePrice + $safeFixedFee;
+        }
+
+        return ($safePurchasePrice + $safeFixedFee) / $denominator;
+    }
+
+    private function parseRupiahAmount(mixed $value): float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) round(max(0, $value));
+        }
+
+        if (! is_string($value)) {
+            return 0.0;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        if ($digits === '') {
+            return 0.0;
+        }
+
+        return (float) round((float) $digits);
+    }
+
+    private function applyPriceRounding(float $value): float
+    {
+        $safeValue = max(0, $value);
+
+        if ($safeValue >= 500000) {
+            return max(0, (round($safeValue / 50000) * 50000) - 1000);
+        }
+
+        if ($safeValue >= 250000) {
+            return max(0, (round($safeValue / 10000) * 10000) - 1000);
+        }
+
+        if ($safeValue >= 100000) {
+            return max(0, (round($safeValue / 5000) * 5000) - 1000);
+        }
+
+        return max(0, (round($safeValue / 1000) * 1000) - 100);
+    }
+
+    private function defaultWarrantyPricingComponent(): array
+    {
+        return [
+            'valueType' => 'percent',
+            'value' => 0.0,
+        ];
+    }
+
+    private function defaultWarrantyConfig(): array
+    {
+        return [
+            'components' => [],
+            'pricing' => [
+                'cost' => $this->defaultWarrantyPricingComponent(),
+                'profit' => $this->defaultWarrantyPricingComponent(),
+            ],
+        ];
+    }
+
+    private function parseWarrantyPricingComponent(mixed $payload, array $fallback = []): array
+    {
+        $fallbackType = strtolower(trim((string) ($fallback['valueType'] ?? 'percent')));
+        $fallbackValueType = in_array($fallbackType, ['amount', 'rp', 'rupiah'], true) ? 'amount' : 'percent';
+        $fallbackValue = $fallbackValueType === 'amount'
+            ? $this->parseRupiahAmount($fallback['value'] ?? 0)
+            : max(0, $this->toFloat($fallback['value'] ?? 0));
+
+        if (! is_array($payload)) {
+            return [
+                'valueType' => $fallbackValueType,
+                'value' => $fallbackValue,
             ];
+        }
+
+        $rawType = strtolower(trim((string) ($payload['valueType'] ?? $fallbackValueType)));
+        $valueType = in_array($rawType, ['amount', 'rp', 'rupiah'], true) ? 'amount' : 'percent';
+
+        return [
+            'valueType' => $valueType,
+            'value' => $valueType === 'amount'
+                ? $this->parseRupiahAmount($payload['value'] ?? $fallbackValue)
+                : max(0, $this->toFloat($payload['value'] ?? $fallbackValue)),
+        ];
+    }
+
+    private function setWarrantyPricingFromRecord(array $source, array &$pricing): void
+    {
+        $read = function (array $aliases) use ($source): mixed {
+            foreach ($aliases as $alias) {
+                if (array_key_exists($alias, $source)) {
+                    return $source[$alias];
+                }
+            }
+
+            return null;
         };
 
-        $parseComponent = function (mixed $row) use (&$push): void {
+        $costPayload = $read(['cost', 'biaya', 'biaya_program_garansi', 'cost_component']);
+        if (! is_null($costPayload)) {
+            $pricing['cost'] = $this->parseWarrantyPricingComponent($costPayload, $pricing['cost'] ?? []);
+        }
+
+        $profitPayload = $read(['profit', 'keuntungan', 'keuntungan_program_garansi', 'profit_component']);
+        if (! is_null($profitPayload)) {
+            $pricing['profit'] = $this->parseWarrantyPricingComponent($profitPayload, $pricing['profit'] ?? []);
+        }
+    }
+
+    private function setWarrantyPricingFromLabel(string $label, array $component, array &$pricing): bool
+    {
+        $normalizedLabel = $this->normalizeLabel($label);
+
+        if ($normalizedLabel === self::WARRANTY_COST_LABEL) {
+            $pricing['cost'] = $this->parseWarrantyPricingComponent($component, $pricing['cost'] ?? []);
+            return true;
+        }
+
+        if ($normalizedLabel === self::WARRANTY_PROFIT_LABEL) {
+            $pricing['profit'] = $this->parseWarrantyPricingComponent($component, $pricing['profit'] ?? []);
+            return true;
+        }
+
+        return false;
+    }
+
+    private function appendWarrantyComponent(array &$components, array $component): void
+    {
+        $label = $this->normalizeLabel((string) ($component['label'] ?? ''));
+        if ($label === '') {
+            return;
+        }
+
+        $dedupeKey = strtolower($label);
+        foreach ($components as $existing) {
+            if (($existing['key'] ?? '') === $dedupeKey) {
+                return;
+            }
+        }
+
+        $rawType = strtolower(trim((string) ($component['valueType'] ?? 'percent')));
+        $valueType = in_array($rawType, ['amount', 'rp', 'rupiah'], true) ? 'amount' : 'percent';
+        $components[] = [
+            'key' => $dedupeKey,
+            'label' => $label,
+            'valueType' => $valueType,
+            'value' => $valueType === 'amount'
+                ? $this->parseRupiahAmount($component['value'] ?? 0)
+                : max(0, $this->toFloat($component['value'] ?? 0)),
+        ];
+    }
+
+    private function extractWarrantyConfig(mixed $programGaransi): array
+    {
+        $config = $this->defaultWarrantyConfig();
+        $components = &$config['components'];
+        $pricing = &$config['pricing'];
+
+        $parseComponent = function (mixed $row) use (&$components, &$pricing): void {
             if (is_string($row)) {
                 $label = $this->normalizeLabel($row);
                 if ($label !== '') {
-                    $push([
+                    $this->appendWarrantyComponent($components, [
                         'label' => $label,
                         'valueType' => 'percent',
                         'value' => 0,
@@ -447,11 +710,17 @@ class ProductService
                 return;
             }
 
-            $push([
+            $component = [
                 'label' => (string) ($row['label'] ?? $row['name'] ?? ''),
                 'valueType' => (string) ($row['valueType'] ?? 'percent'),
                 'value' => $row['value'] ?? 0,
-            ]);
+            ];
+
+            if ($this->setWarrantyPricingFromLabel((string) $component['label'], $component, $pricing)) {
+                return;
+            }
+
+            $this->appendWarrantyComponent($components, $component);
         };
 
         if (is_array($programGaransi)) {
@@ -459,26 +728,33 @@ class ProductService
                 foreach ($programGaransi as $row) {
                     $parseComponent($row);
                 }
-                return $components;
+                return $config;
             }
+
+            if (is_array($programGaransi['pricing'] ?? null)) {
+                $this->setWarrantyPricingFromRecord($programGaransi['pricing'], $pricing);
+            }
+            $this->setWarrantyPricingFromRecord($programGaransi, $pricing);
 
             $nested = $programGaransi['components'] ?? null;
             if (is_array($nested)) {
                 foreach ($nested as $row) {
                     $parseComponent($row);
                 }
+            } else {
+                $parseComponent($programGaransi);
             }
 
-            return $components;
+            return $config;
         }
 
         if (! is_string($programGaransi) || trim($programGaransi) === '') {
-            return $components;
+            return $config;
         }
 
         $decoded = json_decode($programGaransi, true);
         if (json_last_error() === JSON_ERROR_NONE) {
-            return $this->extractWarrantyComponents($decoded);
+            return $this->extractWarrantyConfig($decoded);
         }
 
         $labels = preg_split('/[\r\n,]+/', $programGaransi) ?: [];
@@ -486,7 +762,7 @@ class ProductService
             $parseComponent($label);
         }
 
-        return $components;
+        return $config;
     }
 
     private function extractWarrantyOption(array $item): string
@@ -508,29 +784,42 @@ class ProductService
         return '';
     }
 
-    private function calculateWarrantyAdjustment(array $warrantyComponents, string $warrantyOption, float $baseRecommended): float
+    private function hasWarrantyPricing(array $pricing): bool
     {
-        if ($warrantyOption === '') {
-            return 0.0;
+        $costValue = max(0, $this->toFloat($pricing['cost']['value'] ?? 0));
+        $profitValue = max(0, $this->toFloat($pricing['profit']['value'] ?? 0));
+
+        if ($costValue > 0) {
+            return true;
         }
 
-        $lookup = strtolower($this->normalizeLabel($warrantyOption));
-        foreach ($warrantyComponents as $component) {
-            if (($component['key'] ?? '') !== $lookup) {
-                continue;
-            }
+        $profitValueType = strtolower(trim((string) ($pricing['profit']['valueType'] ?? 'percent')));
+        return in_array($profitValueType, ['amount', 'rp', 'rupiah'], true) && $profitValue > 0;
+    }
 
-            $valueType = (string) ($component['valueType'] ?? 'percent');
-            $value = max(0, $this->toFloat($component['value'] ?? 0));
-
-            if ($valueType === 'amount') {
-                return round($value);
-            }
-
-            return round($baseRecommended * ($value / 100));
+    private function calculateWarrantyValue(float $baseRecommended, array $component, ?float $percentBase = null): float
+    {
+        $valueType = strtolower(trim((string) ($component['valueType'] ?? 'percent')));
+        if (in_array($valueType, ['amount', 'rp', 'rupiah'], true)) {
+            return round($this->parseRupiahAmount($component['value'] ?? 0));
         }
 
-        return 0.0;
+        $percent = max(0, $this->toFloat($component['value'] ?? 0));
+        $base = max(0, $percentBase ?? $baseRecommended);
+        return round($base * ($percent / 100));
+    }
+
+    private function applyWarrantyMultiplier(string $warrantyOption, float $baseRecommended): float
+    {
+        if ($warrantyOption === '' || str_contains($warrantyOption, 'tanpa')) {
+            return $baseRecommended;
+        }
+
+        if (preg_match('/(^|[^0-9])1\s*tahun/u', $warrantyOption) === 1 || str_contains($warrantyOption, '1th') || str_contains($warrantyOption, '1 th')) {
+            return $baseRecommended * 1.06;
+        }
+
+        return $baseRecommended;
     }
 
     private function normalizeLabel(string $value): string
@@ -967,21 +1256,21 @@ class ProductService
 
     private function cleanDescription(string $value): ?string
     {
-        $trimmed = trim($value);
-        if ($trimmed === '') {
+        $normalizedInput = $this->normalizeDescriptionInput($value);
+        if ($normalizedInput === '') {
             return null;
         }
 
         $withoutDangerousTags = preg_replace(
             '/<(script|style|iframe|object|embed|form|input|button|textarea|select|option|link|meta)[^>]*>.*?<\/\1>/is',
             '',
-            $trimmed
+            $normalizedInput
         );
 
         $safeHtml = preg_replace(
             '/\son\w+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i',
             '',
-            $withoutDangerousTags ?? $trimmed
+            $withoutDangerousTags ?? $normalizedInput
         );
 
         $safeHtml = preg_replace(
@@ -993,10 +1282,64 @@ class ProductService
         $allowedTags = '<p><br><strong><b><em><i><u><ul><ol><li><h2><h3><blockquote>';
         $sanitized = strip_tags($safeHtml ?? '', $allowedTags);
         $sanitized = preg_replace('/<p>\s*<\/p>/i', '<p><br></p>', $sanitized ?? '');
+        $sanitized = preg_replace('/<p>\s*&nbsp;\s*<\/p>/i', '<p><br></p>', $sanitized ?? '');
+        $sanitized = preg_replace('/<p>\s*-\s*<\/p>/i', '<p><br></p>', $sanitized ?? '');
         $sanitized = preg_replace('/(<br\s*\/?>\s*){3,}/i', '<br><br>', $sanitized ?? '');
+        $sanitized = preg_replace('/<\/(p|li|blockquote|h[1-6])>\s*</i', '</$1>' . PHP_EOL . '<', $sanitized ?? '');
         $sanitized = trim((string) $sanitized);
 
         return $sanitized !== '' ? $sanitized : null;
+    }
+
+    private function normalizeDescriptionInput(string $value): string
+    {
+        $normalized = str_replace(["\r\n", "\r"], "\n", trim($value));
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (preg_match('/<\/?[a-z][\s\S]*>/i', $normalized) === 1) {
+            return $normalized;
+        }
+
+        $lines = preg_split('/\n/', $normalized) ?: [];
+        $result = [];
+        $buffer = [];
+
+        $flushBuffer = function () use (&$buffer, &$result): void {
+            $chunk = trim(implode("\n", $buffer));
+            if ($chunk !== '') {
+                $escaped = htmlspecialchars($chunk, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $result[] = '<p>' . str_replace("\n", '<br>', $escaped) . '</p>';
+            }
+
+            $buffer = [];
+        };
+
+        foreach ($lines as $line) {
+            $chunk = trim((string) $line);
+
+            if ($this->isDescriptionSpacerMarker($chunk)) {
+                $flushBuffer();
+                $result[] = '<p><br></p>';
+                continue;
+            }
+
+            if ($chunk === '') {
+                $flushBuffer();
+                continue;
+            }
+
+            $buffer[] = (string) $line;
+        }
+
+        $flushBuffer();
+        return implode(PHP_EOL, $result);
+    }
+
+    private function isDescriptionSpacerMarker(string $value): bool
+    {
+        return preg_match('/^-$/', trim($value)) === 1;
     }
 
     private function generateSpu(string $brand): string

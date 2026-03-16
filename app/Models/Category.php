@@ -24,12 +24,14 @@ class Category extends Model
         'fees',
         'program_garansi',
         'min_margin',
+        'margin_percent',
     ];
 
     protected $casts = [
         'fees' => 'array',
         'program_garansi' => 'array',
         'min_margin' => 'decimal:2',
+        'margin_percent' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -43,6 +45,29 @@ class Category extends Model
     protected $hidden = [
         'deleted_at',
     ];
+
+    /**
+     * Keep margin_percent and min_margin in sync for backward compatibility.
+     */
+    public function setMarginPercentAttribute($value): void
+    {
+        $normalized = round(max(0, (float) $value), 2);
+        $this->attributes['margin_percent'] = $normalized;
+        $this->attributes['min_margin'] = $normalized;
+    }
+
+    /**
+     * Keep min_margin and margin_percent in sync for backward compatibility.
+     */
+    public function setMinMarginAttribute($value): void
+    {
+        $normalized = round(max(0, (float) $value), 2);
+        $this->attributes['min_margin'] = $normalized;
+
+        if (! array_key_exists('margin_percent', $this->attributes) || is_null($this->attributes['margin_percent'])) {
+            $this->attributes['margin_percent'] = $normalized;
+        }
+    }
 
     /**
      * Accessor untuk backward compatibility
@@ -73,7 +98,10 @@ class Category extends Model
      */
     public function getFeeMarketplace(): ?array
     {
-        return $this->fees['marketplace'] ?? [
+        return $this->fees['marketplace']
+            ?? $this->fees['tokopedia']
+            ?? $this->fees['tokopedia_tiktok']
+            ?? [
             'components' => [],
         ];
     }
@@ -103,7 +131,10 @@ class Category extends Model
      */
     public function getFeeTokopediaTiktok(): ?array
     {
-        return $this->fees['tokopedia_tiktok'] ?? [
+        return $this->fees['tokopedia_tiktok']
+            ?? $this->fees['tokopedia']
+            ?? $this->fees['marketplace']
+            ?? [
             'components' => [],
         ];
     }
@@ -243,8 +274,13 @@ class Category extends Model
                     'marketplace' => ['components' => []],
                     'shopee' => ['components' => []],
                     'entraverse' => ['components' => []],
+                    'tokopedia' => ['components' => []],
                     'tokopedia_tiktok' => ['components' => []],
                 ];
+            }
+
+            if (is_null($category->margin_percent)) {
+                $category->margin_percent = $category->min_margin ?? 0;
             }
         });
 

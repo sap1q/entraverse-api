@@ -18,6 +18,7 @@ class CategorySeeder extends Seeder
                 'fee_entraverse' => 'Internal: 0% + Gateway: 2%',
                 'program_garansi' => 'Wajib Serial Number (SN)',
                 'min_margin' => 15.00,
+                'margin_percent' => 15.00,
             ],
             [
                 'name' => 'Aksesoris Elektronik',
@@ -27,6 +28,7 @@ class CategorySeeder extends Seeder
                 'fee_entraverse' => 'Internal: 0%',
                 'program_garansi' => 'Non-Garansi / 7 Hari Toko',
                 'min_margin' => 25.00,
+                'margin_percent' => 25.00,
             ],
             [
                 'name' => 'Audio & Speaker',
@@ -36,6 +38,7 @@ class CategorySeeder extends Seeder
                 'fee_entraverse' => 'Internal: 0%',
                 'program_garansi' => 'Garansi Resmi 1 Tahun',
                 'min_margin' => 20.00,
+                'margin_percent' => 20.00,
             ],
         ];
 

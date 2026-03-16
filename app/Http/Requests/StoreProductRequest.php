@@ -59,6 +59,7 @@ class StoreProductRequest extends FormRequest
             'variant_pricing.*.shipping' => ['nullable', 'in:Udara,Laut,Darat'],
             'variant_pricing.*.shipping_cost' => ['nullable', 'numeric', 'min:0'],
             'variant_pricing.*.arrival_cost' => ['nullable', 'numeric', 'min:0'],
+            'variant_pricing.*.margin_percent' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             'variant_pricing.*.offline_price' => ['nullable', 'numeric', 'min:0'],
             'variant_pricing.*.entraverse_price' => ['nullable', 'numeric', 'min:0'],
             'variant_pricing.*.tokopedia_price' => ['nullable', 'numeric', 'min:0'],

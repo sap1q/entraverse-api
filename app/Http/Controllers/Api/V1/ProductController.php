@@ -17,15 +17,14 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->query();
-        $filters['apply_visible'] = true;
+        $filters = $this->resolvePublicFilters($request);
 
-        // Scope Master Produk: hanya produk aktif dan tidak gagal sinkronisasi marketplace/Jurnal.
-        if ($request->boolean('only_active')) {
-            $filters['status'] = $filters['status'] ?? $filters['product_status'] ?? 'active';
-            $filters['exclude_failed_sync'] = $filters['exclude_failed_sync'] ?? true;
-            $filters['only_sync_activated'] = $filters['only_sync_activated'] ?? true;
-        }
+        return ProductResource::collection($this->service->paginate($filters));
+    }
+
+    public function loadMore(Request $request)
+    {
+        $filters = $this->resolvePublicFilters($request);
 
         return ProductResource::collection($this->service->paginate($filters));
     }
@@ -77,5 +76,20 @@ class ProductController extends Controller
             'success' => true,
             'message' => 'Product deleted successfully',
         ]);
+    }
+
+    private function resolvePublicFilters(Request $request): array
+    {
+        $filters = $request->query();
+        $filters['apply_visible'] = true;
+
+        // Scope Master Produk: hanya produk aktif dan tidak gagal sinkronisasi marketplace/Jurnal.
+        if ($request->boolean('only_active')) {
+            $filters['status'] = $filters['status'] ?? $filters['product_status'] ?? 'active';
+            $filters['exclude_failed_sync'] = $filters['exclude_failed_sync'] ?? true;
+            $filters['only_sync_activated'] = $filters['only_sync_activated'] ?? true;
+        }
+
+        return $filters;
     }
 }

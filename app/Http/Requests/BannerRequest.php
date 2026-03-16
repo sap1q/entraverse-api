@@ -19,9 +19,20 @@ class BannerRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:255'],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'link_url' => ['nullable', 'url', 'max:2048'],
-            'image' => [$isUpdate ? 'nullable' : 'required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'image' => [$isUpdate ? 'nullable' : 'required', 'image', 'mimes:jpeg,png,jpg,webp', 'dimensions:width=6912,height=3456', 'max:20480'],
             'order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image.required' => 'Gambar banner wajib diunggah.',
+            'image.image' => 'File banner harus berupa gambar.',
+            'image.mimes' => 'Format banner harus jpeg, jpg, png, atau webp.',
+            'image.dimensions' => 'Dimensi banner harus tepat 6912x3456 piksel.',
+            'image.max' => 'Ukuran file banner maksimal 20 MB.',
         ];
     }
 

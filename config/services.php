@@ -46,4 +46,21 @@ return [
         'debug_signing' => env('MEKARI_DEBUG_SIGNING', false),
     ],
 
+    'rajaongkir' => [
+        'key' => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
+        'timeout' => env('RAJAONGKIR_TIMEOUT', 20),
+        'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY_ID'),
+        'cache_ttl_hours' => env('RAJAONGKIR_CACHE_TTL_HOURS', 6),
+    ],
+
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'snap_base_url' => env('MIDTRANS_SNAP_BASE_URL'),
+        'api_base_url' => env('MIDTRANS_API_BASE_URL'),
+        'timeout' => env('MIDTRANS_TIMEOUT', 30),
+    ],
+
 ];

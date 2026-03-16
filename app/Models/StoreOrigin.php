@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserAddress extends Model
+class StoreOrigin extends Model
 {
     use HasFactory;
     use HasUuids;
@@ -19,36 +19,24 @@ class UserAddress extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'user_id',
-        'address_label',
+        'label',
+        'recipient_name',
+        'recipient_phone',
         'province_id',
         'city_id',
         'district_id',
         'subdistrict',
-        'recipient_name',
-        'recipient_phone',
         'address_detail',
         'zip_code',
         'location_note',
-        'latitude',
-        'longitude',
-        'is_default',
         'is_active',
     ];
 
     protected $casts = [
-        'is_default' => 'boolean',
         'is_active' => 'boolean',
-        'latitude' => 'float',
-        'longitude' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function province(): BelongsTo
     {

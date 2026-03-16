@@ -344,11 +344,13 @@ class SalesOrderService
         }
 
         $purchasePrice = (float) ($variant['purchase_price'] ?? 0);
-        $exchangeValue = (float) ($variant['exchange_value'] ?? 0);
+        $exchangeValue = (float) ($variant['exchange_value'] ?? $variant['exchange_rate'] ?? 0);
         $arrivalCost = (float) ($variant['arrival_cost'] ?? 0);
-        $shippingCost = (float) ($variant['shipping_cost'] ?? 0);
+        $currency = strtoupper(trim((string) ($variant['currency'] ?? '')));
+        $currencySurcharge = in_array($currency, ['USD', 'SGD'], true) ? 50.0 : 0.0;
+        $adjustedExchangeRate = $exchangeValue + $currencySurcharge;
 
-        return max(0.0, ($purchasePrice * $exchangeValue) + $arrivalCost + $shippingCost);
+        return max(0.0, ($purchasePrice * $adjustedExchangeRate) + $arrivalCost);
     }
 
     private function resolveUnitPrice(array $variant, float $landedCost): float
@@ -405,4 +407,3 @@ class SalesOrderService
         return $candidate;
     }
 }
-

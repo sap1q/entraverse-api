@@ -6,7 +6,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class SetMainUserAddressRequest extends FormRequest
+class ShippingCostRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,7 +16,9 @@ class SetMainUserAddressRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'address_id' => ['nullable', 'string', 'max:64'],
+            'city_id' => ['required', 'string', 'size:4', 'regex:/^\d{4}$/'],
+            'weight' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'courier' => ['required', 'string', 'max:50'],
         ];
     }
 }
