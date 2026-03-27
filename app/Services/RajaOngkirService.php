@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\City;
+use App\Models\District;
 use App\Models\ShippingRateCache;
 use App\Models\StoreOrigin;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -179,9 +180,22 @@ class RajaOngkirService
         }
 
         $normalizedCityId = $this->normalizeId($fallbackCityId, 4) ?? $fallbackCityId;
+        $fallbackDistrictId = trim((string) config('services.rajaongkir.origin_district_id', ''));
+        $normalizedDistrictId = $this->normalizeId($fallbackDistrictId, 7);
         $city = City::query()
             ->with('province:id,name')
             ->find($normalizedCityId);
+        $district = null;
+        if ($normalizedDistrictId !== null) {
+            $district = District::query()->find($normalizedDistrictId);
+            if (! $district) {
+                throw new RuntimeException('RAJAONGKIR_ORIGIN_DISTRICT_ID tidak valid.');
+            }
+
+            if ((string) $district->city_id !== $normalizedCityId) {
+                throw new RuntimeException('RAJAONGKIR_ORIGIN_DISTRICT_ID tidak sesuai dengan RAJAONGKIR_ORIGIN_CITY_ID.');
+            }
+        }
 
         $cityName = $city
             ? trim(implode(' ', array_filter([
@@ -190,6 +204,7 @@ class RajaOngkirService
             ])))
             : null;
         $provinceName = $city?->province?->name;
+        $districtName = $district?->name;
         $zipCode = $this->normalizePostalCode($city?->postal_code);
 
         return [
@@ -202,13 +217,14 @@ class RajaOngkirService
             'province_name' => $this->normalizeText($provinceName),
             'city_id' => $normalizedCityId,
             'city_name' => $this->normalizeText($cityName),
-            'district_id' => null,
-            'district_name' => null,
+            'district_id' => $normalizedDistrictId,
+            'district_name' => $this->normalizeText($districtName),
             'subdistrict' => null,
             'address_detail' => null,
             'zip_code' => $zipCode,
             'location_note' => null,
             'full_address' => $this->composeFullAddress([
+                $districtName,
                 $cityName,
                 $provinceName,
                 $zipCode,
@@ -221,7 +237,12 @@ class RajaOngkirService
     /**
      * @return array<int, array{service: string, description: ?string, cost: int, etd: ?string, note: ?string}>
      */
-    public function getShippingCost(string $destinationCityId, int $weight, string $courier): array
+    public function getShippingCost(
+        string $destinationCityId,
+        int $weight,
+        string $courier,
+        ?string $destinationDistrictId = null
+    ): array
     {
         $originProfile = $this->getShippingOrigin();
         $originCityId = trim((string) ($originProfile['city_id'] ?? ''));
@@ -229,12 +250,14 @@ class RajaOngkirService
             throw new RuntimeException('Origin toko belum dikonfigurasi.');
         }
 
+        $originDistrictId = trim((string) ($originProfile['district_id'] ?? ''));
         $normalizedOriginCityId = $this->normalizeId($originCityId, 4) ?? $originCityId;
         $normalizedDestinationCityId = $this->normalizeId($destinationCityId, 4) ?? $destinationCityId;
-        $destination = $this->normalizeRequestId($normalizedDestinationCityId);
-        $origin = $this->normalizeRequestId($normalizedOriginCityId);
+        $normalizedOriginDistrictId = $this->normalizeId($originDistrictId, 7);
+        $normalizedDestinationDistrictId = $this->normalizeId($destinationDistrictId, 7);
         $normalizedCourier = Str::lower(trim($courier));
         $normalizedWeight = max(1, $weight);
+        $strictMode = $this->isStrictMode();
 
         if ($normalizedCourier === '') {
             throw new RuntimeException('Kurir wajib dipilih untuk menghitung ongkir.');
@@ -244,15 +267,33 @@ class RajaOngkirService
             throw new RuntimeException('Kurir SiCepat belum tersedia pada integrasi RajaOngkir saat ini.');
         }
 
-        $cachedOptions = $this->getCachedShippingOptions(
-            originCityId: $normalizedOriginCityId,
-            destinationCityId: $normalizedDestinationCityId,
-            courier: $normalizedCourier,
-            weight: $normalizedWeight
-        );
+        if ($strictMode && $normalizedOriginDistrictId === null) {
+            throw new RuntimeException('Asal toko wajib memiliki kecamatan aktif sebelum menghitung ongkir.');
+        }
+
+        if ($strictMode && $normalizedDestinationDistrictId === null) {
+            throw new RuntimeException('Alamat tujuan wajib memiliki kecamatan yang valid sebelum menghitung ongkir.');
+        }
+
+        $cachedOptions = $strictMode
+            ? []
+            : $this->getCachedShippingOptions(
+                originCityId: $normalizedOriginCityId,
+                destinationCityId: $normalizedDestinationCityId,
+                courier: $normalizedCourier,
+                weight: $normalizedWeight
+            );
 
         try {
-            $payload = $this->postShippingCost($origin, $destination, $normalizedWeight, $normalizedCourier);
+            $payload = $this->postShippingCost(
+                originCityId: $normalizedOriginCityId,
+                destinationCityId: $normalizedDestinationCityId,
+                weight: $normalizedWeight,
+                courier: $normalizedCourier,
+                originDistrictId: $normalizedOriginDistrictId,
+                destinationDistrictId: $normalizedDestinationDistrictId,
+                strictMode: $strictMode
+            );
             $options = $this->extractShippingOptions($payload);
         } catch (Throwable $throwable) {
             if ($cachedOptions !== []) {
@@ -271,16 +312,22 @@ class RajaOngkirService
                 return $cachedOptions;
             }
 
-            throw new RuntimeException('Layanan pengiriman tidak tersedia untuk rute ini.');
+            throw new RuntimeException(
+                $strictMode
+                    ? 'Layanan pengiriman tidak tersedia untuk rute kecamatan ini.'
+                    : 'Layanan pengiriman tidak tersedia untuk rute ini.'
+            );
         }
 
-        $this->cacheShippingOptions(
-            originCityId: $normalizedOriginCityId,
-            destinationCityId: $normalizedDestinationCityId,
-            courier: $normalizedCourier,
-            weight: $normalizedWeight,
-            options: $options
-        );
+        if (! $strictMode) {
+            $this->cacheShippingOptions(
+                originCityId: $normalizedOriginCityId,
+                destinationCityId: $normalizedDestinationCityId,
+                courier: $normalizedCourier,
+                weight: $normalizedWeight,
+                options: $options
+            );
+        }
 
         return $options;
     }
@@ -357,29 +404,44 @@ class RajaOngkirService
     /**
      * @return array<string, mixed>
      */
-    private function postShippingCost(string $origin, string $destination, int $weight, string $courier): array
+    private function postShippingCost(
+        string $originCityId,
+        string $destinationCityId,
+        int $weight,
+        string $courier,
+        ?string $originDistrictId = null,
+        ?string $destinationDistrictId = null,
+        bool $strictMode = false
+    ): array
     {
-        $attempts = [
-            ['endpoint' => 'calculate/domestic-cost', 'payload' => [
-                'origin' => $origin,
-                'destination' => $destination,
-                'weight' => $weight,
-                'courier' => $courier,
-            ]],
-            ['endpoint' => 'calculate/district/domestic-cost', 'payload' => [
-                'origin' => $origin,
-                'destination' => $destination,
+        $originCity = $this->normalizeRequestId($originCityId);
+        $destinationCity = $this->normalizeRequestId($destinationCityId);
+        $attempts = [];
+
+        if ($originDistrictId !== null && $destinationDistrictId !== null) {
+            $attempts[] = ['endpoint' => 'calculate/district/domestic-cost', 'payload' => [
+                'origin' => $this->normalizeRequestId($originDistrictId),
+                'destination' => $this->normalizeRequestId($destinationDistrictId),
                 'weight' => $weight,
                 'courier' => $courier,
                 'price' => 'lowest',
-            ]],
-            ['endpoint' => 'cost', 'payload' => [
-                'origin' => $origin,
-                'destination' => $destination,
+            ]];
+        }
+
+        if (! $strictMode) {
+            $attempts[] = ['endpoint' => 'calculate/domestic-cost', 'payload' => [
+                'origin' => $originCity,
+                'destination' => $destinationCity,
                 'weight' => $weight,
                 'courier' => $courier,
-            ]],
-        ];
+            ]];
+            $attempts[] = ['endpoint' => 'cost', 'payload' => [
+                'origin' => $originCity,
+                'destination' => $destinationCity,
+                'weight' => $weight,
+                'courier' => $courier,
+            ]];
+        }
 
         $lastError = null;
 
@@ -393,12 +455,22 @@ class RajaOngkirService
 
         $reason = $lastError?->getMessage();
         if (is_string($reason) && str_contains(Str::lower($reason), 'not found')) {
-            throw new RuntimeException("Kurir {$courier} tidak tersedia untuk integrasi RajaOngkir saat ini.", previous: $lastError);
+            throw new RuntimeException(
+                $strictMode
+                    ? "Kurir {$courier} tidak tersedia untuk perhitungan ongkir level kecamatan saat ini."
+                    : "Kurir {$courier} tidak tersedia untuk integrasi RajaOngkir saat ini.",
+                previous: $lastError
+            );
         }
 
         $suffix = is_string($reason) && trim($reason) !== '' ? ' ' . trim($reason) : '';
 
-        throw new RuntimeException("Gagal menghitung ongkir dari RajaOngkir.{$suffix}", previous: $lastError);
+        throw new RuntimeException(
+            $strictMode
+                ? "Gagal menghitung ongkir level kecamatan dari RajaOngkir.{$suffix}"
+                : "Gagal menghitung ongkir dari RajaOngkir.{$suffix}",
+            previous: $lastError
+        );
     }
 
     /**
@@ -681,6 +753,11 @@ class RajaOngkirService
     {
         $baseUrl = (string) config('services.rajaongkir.base_url', '');
         return str_contains(Str::lower($baseUrl), 'rajaongkir.komerce.id');
+    }
+
+    private function isStrictMode(): bool
+    {
+        return (bool) config('services.rajaongkir.strict_mode', false);
     }
 
     /**

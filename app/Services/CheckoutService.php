@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Jobs\SyncSalesInvoiceToJurnalJob;
 use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\StockMutation;
 use App\Models\User;
 use App\Models\UserAddress;
 use Carbon\Carbon;
@@ -30,33 +32,67 @@ class CheckoutService
      *   courier: string,
      *   origin_city_id: string,
      *   destination_city_id: string,
+     *   destination_district_id: ?string,
+     *   item_weight: int,
+     *   packaging_weight: int,
      *   weight: int,
+     *   strict_mode: bool,
      *   origin: array<string, mixed>,
      *   options: array<int, array{service: string, description: ?string, cost: int, etd: ?string, note: ?string}>
      * }
      */
-    public function estimateShippingCost(string $destinationCityId, int $weight, string $courier): array
+    public function estimateShippingCost(
+        User $user,
+        string $courier,
+        ?string $addressId = null,
+        ?string $destinationCityId = null,
+        ?string $destinationDistrictId = null,
+        ?int $weight = null,
+        array $itemsPayload = []
+    ): array
     {
         $normalizedCourier = Str::lower(trim($courier));
-        $normalizedWeight = max(1, $weight);
-        $normalizedDestination = trim($destinationCityId);
         $origin = $this->rajaOngkirService->getShippingOrigin();
+        $prepared = $itemsPayload !== [] ? $this->prepareOrderItems($itemsPayload, lockProducts: false) : null;
+        $destination = $this->resolveShippingDestination(
+            user: $user,
+            addressId: $addressId,
+            cityId: $destinationCityId,
+            districtId: $destinationDistrictId
+        );
 
-        if (! preg_match('/^\d{4}$/', $normalizedDestination)) {
-            throw new RuntimeException('Kota tujuan tidak valid. Perbarui alamat pengiriman terlebih dahulu.');
+        if ($prepared !== null) {
+            $itemWeight = max(1, (int) ($prepared['item_weight'] ?? 0));
+            $packagingWeight = max(0, (int) ($prepared['packaging_weight'] ?? 0));
+            $normalizedWeight = max(1, (int) ($prepared['weight'] ?? 0));
+        } else {
+            $itemWeight = max(0, (int) ($weight ?? 0));
+            if ($itemWeight < 1) {
+                throw ValidationException::withMessages([
+                    'weight' => ['Berat pengiriman wajib diisi atau kirim daftar item checkout.'],
+                ]);
+            }
+
+            $packagingWeight = $this->resolvePackagingWeightInGram();
+            $normalizedWeight = max(1, $itemWeight + $packagingWeight);
         }
 
         $options = $this->rajaOngkirService->getShippingCost(
-            destinationCityId: $normalizedDestination,
+            destinationCityId: $destination['city_id'],
             weight: $normalizedWeight,
-            courier: $normalizedCourier
+            courier: $normalizedCourier,
+            destinationDistrictId: $destination['district_id']
         );
 
         return [
             'courier' => $normalizedCourier,
             'origin_city_id' => (string) ($origin['city_id'] ?? ''),
-            'destination_city_id' => $normalizedDestination,
+            'destination_city_id' => $destination['city_id'],
+            'destination_district_id' => $destination['district_id'],
+            'item_weight' => $itemWeight,
+            'packaging_weight' => $packagingWeight,
             'weight' => $normalizedWeight,
+            'strict_mode' => $this->isStrictShippingMode(),
             'origin' => $origin,
             'options' => $options,
         ];
@@ -88,12 +124,9 @@ class CheckoutService
                 ]);
             }
 
-            $destinationCityId = trim((string) $address->city_id);
-            if (! preg_match('/^\d{4}$/', $destinationCityId)) {
-                throw ValidationException::withMessages([
-                    'address_id' => ['Alamat pengiriman belum memiliki kota/kabupaten yang valid.'],
-                ]);
-            }
+            $shippingDestination = $this->resolveShippingDestinationFromAddress($address);
+            $destinationCityId = $shippingDestination['city_id'];
+            $destinationDistrictId = $shippingDestination['district_id'];
 
             $itemsPayload = is_array($payload['items'] ?? null) ? $payload['items'] : [];
             if ($itemsPayload === []) {
@@ -108,7 +141,8 @@ class CheckoutService
             $shippingServices = $this->rajaOngkirService->getShippingCost(
                 destinationCityId: $destinationCityId,
                 weight: $prepared['weight'],
-                courier: $courier
+                courier: $courier,
+                destinationDistrictId: $destinationDistrictId
             );
             $selectedService = $this->resolveShippingService(
                 $shippingServices,
@@ -152,6 +186,13 @@ class CheckoutService
                         'recipient_name' => $shippingOrigin['recipient_name'] ?? null,
                         'recipient_phone' => $shippingOrigin['recipient_phone'] ?? null,
                     ],
+                    'destination' => [
+                        'city_id' => $destinationCityId,
+                        'district_id' => $destinationDistrictId,
+                    ],
+                    'item_weight' => $prepared['item_weight'],
+                    'packaging_weight' => $prepared['packaging_weight'],
+                    'strict_mode' => $this->isStrictShippingMode(),
                     'service_description' => $selectedService['description'],
                     'service_note' => $selectedService['note'],
                 ],
@@ -173,15 +214,27 @@ class CheckoutService
                 ]);
             }
 
+            Invoice::query()->create([
+                'order_id' => (string) $order->id,
+                'invoice_number' => $this->generateInvoiceNumber(),
+                'payment_method' => 'Midtrans Snap',
+                'amount_total' => $totalAmount,
+                'payment_status' => 'pending',
+            ]);
+
+            $this->deductStockWhenOrderCreated($order, $prepared['items']);
+
             return [
                 'order_id' => (string) $order->id,
                 'shipping' => $selectedService,
+                'item_weight' => $prepared['item_weight'],
+                'packaging_weight' => $prepared['packaging_weight'],
                 'shipping_weight' => $prepared['weight'],
                 'items' => $prepared['items'],
             ];
         });
 
-        $order = SalesOrder::query()->with('items')->findOrFail((string) $result['order_id']);
+        $order = SalesOrder::query()->with(['items', 'invoice'])->findOrFail((string) $result['order_id']);
         $snap = $this->midtransService->createSnapToken(
             $this->buildSnapPayload(
                 order: $order,
@@ -199,8 +252,12 @@ class CheckoutService
             ],
         ]);
 
+        $this->syncInvoiceFromOrder($order->fresh(), [
+            'payment_type' => 'midtrans_snap',
+        ]);
+
         return [
-            'order' => $order->fresh(['items']),
+            'order' => $order->fresh(['items.product', 'invoice']),
             'snap_token' => $snap['token'],
             'snap_redirect_url' => $snap['redirect_url'],
             'shipping' => $result['shipping'],
@@ -246,10 +303,13 @@ class CheckoutService
 
             if ($isSettlement) {
                 $order->payment_status = 'settlement';
-                $order->status = 'diproses';
                 $order->settled_at = $this->resolveSettlementDate($payload) ?? now();
 
-                if (! $isAlreadySettled) {
+                if (! in_array((string) $order->status, ['diproses', 'dikirim', 'terkirim', 'selesai'], true)) {
+                    $order->status = 'dibayar';
+                }
+
+                if (! $isAlreadySettled && ! $this->hasDeductedStock($order)) {
                     $this->deductStockFromSettledOrder($order);
                     $shouldDeductStock = true;
                 }
@@ -265,8 +325,9 @@ class CheckoutService
             }
 
             $order->save();
+            $this->syncInvoiceFromOrder($order, $payload);
 
-            return $order->fresh(['items']);
+            return $order->fresh(['items.product', 'invoice']);
         });
 
         if ($shouldDeductStock) {
@@ -276,10 +337,121 @@ class CheckoutService
         return $order;
     }
 
+    public function syncPendingPaymentStatus(SalesOrder $order): SalesOrder
+    {
+        $order->loadMissing(['items.product', 'invoice']);
+
+        $currentPaymentStatus = Str::lower(trim((string) ($order->payment_status ?? 'pending')));
+        if (! in_array($currentPaymentStatus, ['pending', 'unfinish', 'challenge'], true)) {
+            return $order->fresh(['items.product', 'invoice']) ?? $order;
+        }
+
+        $lookupOrderId = trim((string) ($order->order_number ?: $order->payment_reference ?: ''));
+        if ($lookupOrderId === '') {
+            return $order->fresh(['items.product', 'invoice']) ?? $order;
+        }
+
+        $payload = $this->midtransService->getTransactionStatus($lookupOrderId);
+        if (! is_array($payload) || trim((string) ($payload['transaction_status'] ?? '')) === '') {
+            return $order->fresh(['items.product', 'invoice']) ?? $order;
+        }
+
+        if (trim((string) ($payload['order_id'] ?? '')) === '') {
+            $payload['order_id'] = $lookupOrderId;
+        }
+
+        return $this->handlePaymentCallback($payload);
+    }
+
+    /**
+     * @return array{city_id: string, district_id: ?string}
+     */
+    private function resolveShippingDestination(
+        User $user,
+        ?string $addressId = null,
+        ?string $cityId = null,
+        ?string $districtId = null
+    ): array {
+        $normalizedAddressId = trim((string) ($addressId ?? ''));
+        if ($normalizedAddressId !== '') {
+            $address = UserAddress::query()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->whereKey($normalizedAddressId)
+                ->first();
+
+            if (! $address) {
+                throw ValidationException::withMessages([
+                    'address_id' => ['Alamat pengiriman tidak ditemukan.'],
+                ]);
+            }
+
+            return $this->resolveShippingDestinationFromAddress($address);
+        }
+
+        $normalizedCityId = trim((string) ($cityId ?? ''));
+        if (! preg_match('/^\d{4}$/', $normalizedCityId)) {
+            throw ValidationException::withMessages([
+                'city_id' => ['Kota tujuan tidak valid. Perbarui alamat pengiriman terlebih dahulu.'],
+            ]);
+        }
+
+        $normalizedDistrictId = trim((string) ($districtId ?? ''));
+        if ($this->isStrictShippingMode() && $normalizedDistrictId === '') {
+            throw ValidationException::withMessages([
+                'district_id' => ['Kecamatan tujuan wajib dipilih untuk menghitung ongkir.'],
+            ]);
+        }
+
+        if ($normalizedDistrictId !== '' && ! preg_match('/^\d{7}$/', $normalizedDistrictId)) {
+            throw ValidationException::withMessages([
+                'district_id' => ['Kecamatan tujuan tidak valid.'],
+            ]);
+        }
+
+        return [
+            'city_id' => $normalizedCityId,
+            'district_id' => $normalizedDistrictId !== '' ? $normalizedDistrictId : null,
+        ];
+    }
+
+    /**
+     * @return array{city_id: string, district_id: ?string}
+     */
+    private function resolveShippingDestinationFromAddress(UserAddress $address): array
+    {
+        $destinationCityId = trim((string) $address->city_id);
+        if (! preg_match('/^\d{4}$/', $destinationCityId)) {
+            throw ValidationException::withMessages([
+                'address_id' => ['Alamat pengiriman belum memiliki kota/kabupaten yang valid.'],
+            ]);
+        }
+
+        $destinationDistrictId = trim((string) ($address->district_id ?? ''));
+        if ($this->isStrictShippingMode() && $destinationDistrictId === '') {
+            throw ValidationException::withMessages([
+                'address_id' => ['Alamat pengiriman belum memiliki kecamatan. Lengkapi alamat untuk melihat ongkir.'],
+            ]);
+        }
+
+        if ($destinationDistrictId !== '' && ! preg_match('/^\d{7}$/', $destinationDistrictId)) {
+            throw ValidationException::withMessages([
+                'address_id' => ['Alamat pengiriman belum memiliki kecamatan RajaOngkir yang valid.'],
+            ]);
+        }
+
+        return [
+            'city_id' => $destinationCityId,
+            'district_id' => $destinationDistrictId !== '' ? $destinationDistrictId : null,
+        ];
+    }
+
     /**
      * @param array<int, mixed> $itemsPayload
      * @return array{
      *   subtotal: float,
+     *   item_weight: int,
+     *   packaging_weight: int,
      *   weight: int,
      *   items: array<int, array{
      *      product_id: string,
@@ -295,7 +467,7 @@ class CheckoutService
      *   }>
      * }
      */
-    private function prepareOrderItems(array $itemsPayload): array
+    private function prepareOrderItems(array $itemsPayload, bool $lockProducts = true): array
     {
         $preparedItems = [];
         $subtotal = 0.0;
@@ -312,9 +484,12 @@ class CheckoutService
             $selectedVariants = is_array($row['variants'] ?? null) ? $row['variants'] : [];
 
             /** @var Product|null $product */
-            $product = Product::query()
-                ->lockForUpdate()
-                ->find($productId);
+            $productQuery = Product::query();
+            if ($lockProducts) {
+                $productQuery->lockForUpdate();
+            }
+
+            $product = $productQuery->find($productId);
 
             if (! $product || ! $product->isPubliclyVisible()) {
                 throw ValidationException::withMessages([
@@ -339,6 +514,14 @@ class CheckoutService
             $unitPrice = $this->resolveUnitPrice($variant, $product);
             $lineTotal = $unitPrice * $quantity;
             $itemWeight = $this->resolveWeightInGram($variant, $product);
+            if ($itemWeight === null) {
+                throw ValidationException::withMessages([
+                    'items' => [sprintf(
+                        'Berat produk %s belum dikonfigurasi. Lengkapi berat produk sebelum menghitung ongkir.',
+                        $this->describeCheckoutItem($product, $variant)
+                    )],
+                ]);
+            }
             $warehouse = $this->resolveWarehouse($variant, $product);
             $landedCost = $this->calculateLandedCost($variant);
             $resolvedSku = $this->resolveSku($product, $variant);
@@ -370,9 +553,13 @@ class CheckoutService
             ]);
         }
 
+        $packagingWeight = $this->resolvePackagingWeightInGram();
+
         return [
             'subtotal' => $subtotal,
-            'weight' => max(1, $totalWeight),
+            'item_weight' => max(1, $totalWeight),
+            'packaging_weight' => $packagingWeight,
+            'weight' => max(1, $totalWeight + $packagingWeight),
             'items' => $preparedItems,
         ];
     }
@@ -442,7 +629,7 @@ class CheckoutService
         ];
 
         $appUrl = rtrim((string) config('app.frontend_url', config('app.url', '')), '/');
-        $checkoutPath = $appUrl !== '' ? "{$appUrl}/checkout" : null;
+        $transactionsPath = $appUrl !== '' ? "{$appUrl}/transaksi" : null;
         $payload = [
             'transaction_details' => [
                 'order_id' => (string) $order->order_number,
@@ -461,11 +648,16 @@ class CheckoutService
             ],
         ];
 
-        if ($checkoutPath) {
+        if ($transactionsPath) {
+            $queryBase = http_build_query([
+                'highlight' => (string) $order->id,
+                'invoice' => (string) $order->order_number,
+            ]);
+
             $payload['callbacks'] = [
-                'finish' => "{$checkoutPath}?order={$order->order_number}&status=finish",
-                'unfinish' => "{$checkoutPath}?order={$order->order_number}&status=unfinish",
-                'error' => "{$checkoutPath}?order={$order->order_number}&status=error",
+                'finish' => "{$transactionsPath}?{$queryBase}&payment_status=finish",
+                'unfinish' => "{$transactionsPath}?{$queryBase}&payment_status=unfinish",
+                'error' => "{$transactionsPath}?{$queryBase}&payment_status=error",
             ];
         }
 
@@ -578,6 +770,101 @@ class CheckoutService
             $product->stock_status = $updatedTotalStock > 0 ? 'in_stock' : 'out_of_stock';
             $product->save();
         }
+
+        $this->markStockAsDeducted($order, 'payment_settlement');
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $preparedItems
+     */
+    private function deductStockWhenOrderCreated(SalesOrder $order, array $preparedItems): void
+    {
+        foreach ($preparedItems as $item) {
+            $product = Product::query()
+                ->lockForUpdate()
+                ->find((string) ($item['product_id'] ?? ''));
+
+            if (! $product) {
+                throw new RuntimeException("Produk {$item['product_id']} tidak ditemukan saat checkout.");
+            }
+
+            $variantRows = $this->extractVariantRows($product);
+            $targetSku = trim((string) ($item['variant_sku'] ?? ''));
+            $targetIndex = null;
+
+            foreach ($variantRows as $index => $variantRow) {
+                if (strcasecmp($this->resolveSku($product, $variantRow), $targetSku) === 0) {
+                    $targetIndex = $index;
+                    break;
+                }
+            }
+
+            if ($targetIndex === null) {
+                throw new RuntimeException("SKU {$targetSku} tidak ditemukan saat checkout.");
+            }
+
+            $targetVariant = $variantRows[$targetIndex];
+            $warehouse = trim((string) ($item['warehouse'] ?? '')) ?: $this->resolveWarehouse($targetVariant, $product);
+            $warehouseStock = $this->normalizeWarehouseStock(
+                $targetVariant['warehouse_stock'] ?? null,
+                $warehouse,
+                (int) ($targetVariant['stock'] ?? 0)
+            );
+
+            $currentStock = (int) ($warehouseStock[$warehouse] ?? 0);
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            if ($currentStock < $quantity) {
+                throw new RuntimeException("Stok tidak cukup untuk SKU {$targetSku} saat checkout.");
+            }
+
+            $warehouseStock[$warehouse] = $currentStock - $quantity;
+            $targetVariant['warehouse_stock'] = $warehouseStock;
+            $targetVariant['stock'] = (int) collect($warehouseStock)->sum();
+            $variantRows[$targetIndex] = $targetVariant;
+
+            $updatedTotalStock = (int) collect($variantRows)->sum(fn (array $row): int => (int) ($row['stock'] ?? 0));
+            $inventory = is_array($product->inventory) ? $product->inventory : [];
+            $inventory['total_stock'] = $updatedTotalStock;
+
+            $product->variant_pricing = array_values($variantRows);
+            $product->inventory = $inventory;
+            $product->stock = $updatedTotalStock;
+            $product->stock_status = $updatedTotalStock > 0 ? 'in_stock' : 'out_of_stock';
+            $product->save();
+
+            StockMutation::query()->create([
+                'product_id' => (string) $product->id,
+                'variant_sku' => $targetSku,
+                'type' => 'out',
+                'quantity' => -$quantity,
+                'reference' => 'checkout:' . (string) $order->order_number,
+                'note' => sprintf(
+                    'Checkout customer | warehouse %s | sebelum %d | sesudah %d',
+                    $warehouse,
+                    $currentStock,
+                    $warehouseStock[$warehouse]
+                ),
+                'user_id' => null,
+            ]);
+        }
+
+        $this->markStockAsDeducted($order, 'checkout_created');
+    }
+
+    private function hasDeductedStock(SalesOrder $order): bool
+    {
+        $metadata = is_array($order->shipping_metadata) ? $order->shipping_metadata : [];
+
+        return is_string($metadata['stock_deducted_at'] ?? null) && trim((string) $metadata['stock_deducted_at']) !== '';
+    }
+
+    private function markStockAsDeducted(SalesOrder $order, string $source): void
+    {
+        $metadata = is_array($order->shipping_metadata) ? $order->shipping_metadata : [];
+        $metadata['stock_deducted_at'] = now()->toISOString();
+        $metadata['stock_deduction_source'] = $source;
+        $order->shipping_metadata = $metadata;
+        $order->save();
     }
 
     /**
@@ -631,7 +918,7 @@ class CheckoutService
         return max(0.0, ($purchasePrice * $adjustedExchangeRate) + $arrivalCost);
     }
 
-    private function resolveWeightInGram(array $variant, Product $product): int
+    private function resolveWeightInGram(array $variant, Product $product): ?int
     {
         $candidates = [
             (float) ($variant['item_weight'] ?? 0),
@@ -645,7 +932,30 @@ class CheckoutService
             }
         }
 
-        return 1;
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $variant
+     */
+    private function describeCheckoutItem(Product $product, array $variant): string
+    {
+        $variantLabel = trim((string) ($variant['label'] ?? $variant['variant_name'] ?? ''));
+        if ($variantLabel !== '' && ! in_array(Str::lower($variantLabel), ['default', 'default variant'], true)) {
+            return sprintf('%s (%s)', (string) $product->name, $variantLabel);
+        }
+
+        return (string) $product->name;
+    }
+
+    private function resolvePackagingWeightInGram(): int
+    {
+        return max(0, (int) config('services.rajaongkir.packaging_weight_grams', 0));
+    }
+
+    private function isStrictShippingMode(): bool
+    {
+        return (bool) config('services.rajaongkir.strict_mode', false);
     }
 
     /**
@@ -859,11 +1169,165 @@ class CheckoutService
         return $normalized;
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function syncInvoiceFromOrder(SalesOrder $order, array $payload = []): Invoice
+    {
+        $invoice = $order->invoice()->firstOrNew();
+        if (! $invoice->exists) {
+            $invoice->invoice_number = $this->generateInvoiceNumber();
+        }
+
+        $paymentType = Str::lower(trim((string) ($payload['payment_type'] ?? $order->payment_method ?? '')));
+        $invoiceStatus = $this->mapInvoicePaymentStatus((string) ($order->payment_status ?? 'pending'));
+        $settledAt = $order->settled_at ?? $this->resolveSettlementDate($payload);
+
+        $invoice->payment_method = $this->resolveInvoicePaymentMethod($paymentType, $payload, $invoice->payment_method);
+        $invoice->payment_va_number = $this->resolveInvoiceVaNumber($payload) ?? $invoice->payment_va_number;
+        $invoice->payment_bill_key = $this->resolveInvoiceBillKey($payload) ?? $invoice->payment_bill_key;
+        $invoice->amount_total = (float) $order->total_amount;
+        $invoice->payment_status = $invoiceStatus;
+        $invoice->snap_token = trim((string) ($order->snap_token ?? '')) !== ''
+            ? (string) $order->snap_token
+            : $invoice->snap_token;
+        $invoice->expiry_time = $this->resolveInvoiceExpiryTime($payload) ?? $invoice->expiry_time;
+
+        if ($invoiceStatus === 'paid') {
+            $invoice->paid_at = $settledAt ?? $invoice->paid_at ?? now();
+        }
+
+        $invoice->save();
+
+        return $invoice->fresh();
+    }
+
+    private function mapInvoicePaymentStatus(string $paymentStatus): string
+    {
+        $normalized = Str::lower(trim($paymentStatus));
+
+        return match (true) {
+            in_array($normalized, ['settlement', 'capture', 'paid'], true) => 'paid',
+            in_array($normalized, ['expire', 'expired'], true) => 'expired',
+            in_array($normalized, ['deny', 'cancel', 'cancelled', 'failure', 'failed'], true) => 'failed',
+            default => 'pending',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolveInvoicePaymentMethod(string $paymentType, array $payload, ?string $fallback = null): string
+    {
+        $bank = Str::lower(trim((string) Arr::get($payload, 'va_numbers.0.bank', '')));
+
+        if ($paymentType === 'bank_transfer' && $bank !== '') {
+            return match ($bank) {
+                'bca' => 'BCA Virtual Account',
+                'bni' => 'BNI Virtual Account',
+                'bri' => 'BRI Virtual Account',
+                default => strtoupper($bank) . ' Virtual Account',
+            };
+        }
+
+        if ($paymentType === 'echannel') {
+            return 'Mandiri Bill';
+        }
+
+        if ($this->resolveInvoiceVaNumber($payload) !== null && trim((string) Arr::get($payload, 'permata_va_number', '')) !== '') {
+            return 'Permata Virtual Account';
+        }
+
+        return match ($paymentType) {
+            'gopay' => 'GoPay',
+            'shopeepay' => 'ShopeePay',
+            'qris' => 'QRIS',
+            'credit_card' => 'Kartu Kredit',
+            'debit_card' => 'Kartu Debit',
+            'cstore' => ucfirst((string) Arr::get($payload, 'store', 'Gerai')),
+            'midtrans_snap' => 'Midtrans Snap',
+            '' => trim((string) ($fallback ?? 'Midtrans Snap')) !== '' ? (string) $fallback : 'Midtrans Snap',
+            default => (string) Str::of($paymentType)->replace(['_', '-'], ' ')->title(),
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolveInvoiceVaNumber(array $payload): ?string
+    {
+        $candidates = [
+            Arr::get($payload, 'va_numbers.0.va_number'),
+            Arr::get($payload, 'permata_va_number'),
+            Arr::get($payload, 'payment_code'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) && ! is_numeric($candidate)) {
+                continue;
+            }
+
+            $normalized = trim((string) $candidate);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolveInvoiceBillKey(array $payload): ?string
+    {
+        $candidate = Arr::get($payload, 'bill_key');
+        if (! is_string($candidate) && ! is_numeric($candidate)) {
+            return null;
+        }
+
+        $normalized = trim((string) $candidate);
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolveInvoiceExpiryTime(array $payload): ?Carbon
+    {
+        $candidate = Arr::get($payload, 'expiry_time');
+        if (! is_string($candidate) || trim($candidate) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($candidate);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     private function generateOrderNumber(): string
     {
         do {
             $candidate = sprintf('SO-%s-%04d', now()->format('Ymd'), random_int(0, 9999));
         } while (SalesOrder::query()->where('order_number', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    private function generateInvoiceNumber(): string
+    {
+        $dateSegment = now()->format('Ymd');
+        $prefix = sprintf('INV/%s/ENT/', $dateSegment);
+
+        do {
+            $sequence = Invoice::query()
+                ->where('invoice_number', 'like', "{$prefix}%")
+                ->count() + 1;
+            $candidate = sprintf('%s%03d', $prefix, $sequence);
+        } while (Invoice::query()->where('invoice_number', $candidate)->exists());
 
         return $candidate;
     }

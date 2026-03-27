@@ -96,6 +96,47 @@ class MidtransService
             : 'https://app.sandbox.midtrans.com/snap/snap.js';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getTransactionStatus(string $orderId): array
+    {
+        $serverKey = $this->serverKey();
+        $timeout = (int) config('services.midtrans.timeout', 30);
+        $apiBaseUrl = $this->apiBaseUrl();
+        $normalizedOrderId = trim($orderId);
+
+        if ($serverKey === '') {
+            throw new RuntimeException('MIDTRANS_SERVER_KEY belum dikonfigurasi.');
+        }
+
+        if ($normalizedOrderId === '') {
+            throw new RuntimeException('Order ID Midtrans tidak valid untuk sinkronisasi status.');
+        }
+
+        try {
+            $response = $this->http
+                ->withBasicAuth($serverKey, '')
+                ->acceptJson()
+                ->timeout($timeout)
+                ->get(sprintf('%s/%s/status', $apiBaseUrl, rawurlencode($normalizedOrderId)));
+        } catch (Throwable $throwable) {
+            throw new RuntimeException('Tidak bisa mengambil status transaksi dari Midtrans.', previous: $throwable);
+        }
+
+        if (! $response->successful()) {
+            $errorMessage = $this->extractErrorMessage($response->json());
+            throw new RuntimeException("Gagal mengambil status transaksi Midtrans. {$errorMessage}");
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            throw new RuntimeException('Respons status transaksi Midtrans tidak valid.');
+        }
+
+        return $json;
+    }
+
     private function serverKey(): string
     {
         return (string) config('services.midtrans.server_key', '');
@@ -111,6 +152,18 @@ class MidtransService
         return $this->isProduction()
             ? 'https://app.midtrans.com/snap/v1'
             : 'https://app.sandbox.midtrans.com/snap/v1';
+    }
+
+    private function apiBaseUrl(): string
+    {
+        $configured = trim((string) config('services.midtrans.api_base_url', ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+
+        return $this->isProduction()
+            ? 'https://api.midtrans.com/v2'
+            : 'https://api.sandbox.midtrans.com/v2';
     }
 
     /**
@@ -130,4 +183,3 @@ class MidtransService
         return trim(Str::of((string) $message)->squish()->value());
     }
 }
-

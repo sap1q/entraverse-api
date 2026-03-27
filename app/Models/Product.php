@@ -116,6 +116,11 @@ class Product extends Model
         return $this->hasMany(StockMutation::class);
     }
 
+    public function marketplaceMappings(): HasMany
+    {
+        return $this->hasMany(MarketplaceMapping::class);
+    }
+
     public function salesOrderItems(): HasMany
     {
         return $this->hasMany(SalesOrderItem::class);

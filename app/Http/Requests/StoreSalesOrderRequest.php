@@ -22,7 +22,7 @@ class StoreSalesOrderRequest extends FormRequest
             'customer_phone' => ['nullable', 'string', 'max:40'],
             'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_address' => ['nullable', 'string', 'max:1000'],
-            'status' => ['required', Rule::in(['dibayar', 'diproses', 'dikirim', 'selesai', 'dibatalkan'])],
+            'status' => ['required', Rule::in(['dibayar', 'diproses', 'dikirim', 'terkirim', 'selesai', 'dibatalkan'])],
             'shipping_cost' => ['nullable', 'numeric', 'min:0'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -36,4 +36,3 @@ class StoreSalesOrderRequest extends FormRequest
         ];
     }
 }
-

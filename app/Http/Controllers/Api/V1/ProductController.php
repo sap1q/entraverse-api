@@ -29,6 +29,31 @@ class ProductController extends Controller
         return ProductResource::collection($this->service->paginate($filters));
     }
 
+    public function suggestions(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $limit = max(1, min((int) $request->query('limit', 6), 10));
+
+        if ($search === '') {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'meta' => [
+                    'keywords' => [],
+                ],
+            ]);
+        }
+
+        $result = $this->service->suggest($search, $limit);
+
+        return ProductResource::collection($result['products'])->additional([
+            'success' => true,
+            'meta' => [
+                'keywords' => $result['keywords'],
+            ],
+        ]);
+    }
+
     public function indexAdmin(Request $request)
     {
         $filters = $request->query();
@@ -37,25 +62,29 @@ class ProductController extends Controller
         return ProductResource::collection($this->service->paginate($filters));
     }
 
-    public function show(Product $product)
+    public function show(Request $request, Product $product)
     {
         abort_if(! $product->isPubliclyVisible(), 404, 'Product not found');
+        $request->attributes->set('include_price_breakdown', true);
         return new ProductResource($product);
     }
 
-    public function showAdmin(Product $product)
+    public function showAdmin(Request $request, Product $product)
     {
+        $request->attributes->set('include_price_breakdown', true);
         return new ProductResource($product);
     }
 
     public function store(StoreProductRequest $request)
     {
         $product = $this->service->store($request->validated(), $request->file('images', []));
+        $request->attributes->set('include_price_breakdown', true);
         return (new ProductResource($product))->response()->setStatusCode(201);
     }
 
     public function update(UpdateProductRequest $request, Product $product)
     {
+        $request->attributes->set('include_price_breakdown', true);
         return new ProductResource(
             $this->service->update($product, $request->validated(), $request->file('images', []))
         );
@@ -63,6 +92,7 @@ class ProductController extends Controller
 
     public function updateStatus(UpdateProductStatusRequest $request, Product $product)
     {
+        $request->attributes->set('include_price_breakdown', true);
         return new ProductResource(
             $this->service->update($product, $request->validated())
         );

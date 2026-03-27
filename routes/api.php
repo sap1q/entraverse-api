@@ -10,11 +10,13 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\CustomerOrderController;
 use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\ShippingController;
+use App\Http\Controllers\Api\ShippingTrackingCallbackController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\V1\BannerController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Integration\JurnalSyncController;
+use App\Http\Controllers\Api\V1\Integration\MarketplaceIntegrationController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RajaOngkirRegionController;
 use App\Http\Controllers\Api\V1\SalesOrderController;
@@ -35,7 +37,8 @@ Route::middleware(['auth:sanctum', 'customer'])->prefix('checkout')->name('check
 Route::middleware(['auth:sanctum', 'customer'])->prefix('orders')->name('orders.')->group(function (): void {
     Route::get('/', [CustomerOrderController::class, 'index'])->name('index');
     Route::get('{orderId}', [CustomerOrderController::class, 'show'])->name('show');
-    Route::post('{orderId}/payment', [CustomerOrderController::class, 'payment'])->name('payment');
+    Route::match(['get', 'post'], '{orderId}/payment', [CustomerOrderController::class, 'payment'])->name('payment');
+    Route::post('{orderId}/received', [CustomerOrderController::class, 'received'])->name('received');
 });
 
 Route::get('user/avatar/{user}', [UserProfileController::class, 'avatar'])->name('user.avatar.show');
@@ -49,6 +52,10 @@ Route::prefix('payment')->name('payment.')->group(function (): void {
     Route::post('callback', [PaymentCallbackController::class, 'callback'])->name('callback');
 });
 
+Route::prefix('shipping')->name('shipping.public.')->group(function (): void {
+    Route::post('tracking/webhook', [ShippingTrackingCallbackController::class, 'callback'])->name('tracking.webhook');
+});
+
 Route::prefix('rajaongkir')->name('rajaongkir.')->group(function (): void {
     Route::get('provinces', [RajaOngkirRegionController::class, 'provinces'])->name('provinces');
     Route::get('cities', [RajaOngkirRegionController::class, 'cities'])->name('cities');
@@ -60,6 +67,7 @@ Route::prefix('rajaongkir')->name('rajaongkir.')->group(function (): void {
 Route::prefix('v1')->group(function (): void {
     Route::prefix('products')->name('products.')->group(function (): void {
         Route::get('/', [ProductController::class, 'index'])->name('index');
+        Route::get('suggestions', [ProductController::class, 'suggestions'])->name('suggestions');
         Route::get('load-more', [ProductController::class, 'loadMore'])->name('load-more');
         Route::get('{product}', [ProductController::class, 'show'])->name('show');
     });
@@ -125,6 +133,9 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('/catalog', [SalesOrderController::class, 'catalog'])->name('catalog');
                 Route::get('/{orderId}', [SalesOrderController::class, 'show'])->name('show');
                 Route::post('/', [SalesOrderController::class, 'store'])->name('store');
+                Route::patch('/{orderId}/status', [SalesOrderController::class, 'updateStatus'])->name('update-status');
+                Route::patch('/{orderId}/fulfillment', [SalesOrderController::class, 'fulfillment'])->name('fulfillment');
+                Route::delete('/{orderId}', [SalesOrderController::class, 'destroy'])->name('destroy');
             });
 
             Route::prefix('categories')->name('categories.')->group(function (): void {
@@ -197,5 +208,18 @@ Route::prefix('v1/integrations/jurnal')->name('integrations.jurnal.')->group(fun
         Route::post('products/import', [JurnalSyncController::class, 'importJurnalProducts'])->name('products.import');
         Route::post('products/sync-all', [JurnalSyncController::class, 'syncAllProducts'])->name('products.sync-all');
         Route::get('products', [JurnalSyncController::class, 'getJurnalProducts'])->name('products.index');
+    });
+});
+
+Route::prefix('v1/integrations/marketplaces')->name('integrations.marketplaces.')->group(function (): void {
+    Route::get('{channel}/callback', [MarketplaceIntegrationController::class, 'callback'])->name('callback');
+
+    Route::middleware(['auth:sanctum', 'admin.secure', 'admin'])->group(function (): void {
+        Route::get('connections', [MarketplaceIntegrationController::class, 'connections'])->name('connections');
+        Route::post('{channel}/connect', [MarketplaceIntegrationController::class, 'connect'])->name('connect');
+        Route::post('{channel}/disconnect', [MarketplaceIntegrationController::class, 'disconnect'])->name('disconnect');
+        Route::post('{channel}/sync', [MarketplaceIntegrationController::class, 'sync'])->name('sync');
+        Route::post('{channel}/mappings', [MarketplaceIntegrationController::class, 'storeMapping'])->name('mappings.store');
+        Route::delete('{channel}/mappings', [MarketplaceIntegrationController::class, 'destroyMapping'])->name('mappings.destroy');
     });
 });

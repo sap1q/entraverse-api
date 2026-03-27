@@ -26,6 +26,7 @@ class UpdateUserProfileRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:2000'],
             'country' => ['nullable', 'string', 'max:100'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'remove_avatar' => ['nullable', 'boolean'],
             'avatar' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ];
     }
@@ -56,6 +57,7 @@ class UpdateUserProfileRequest extends FormRequest
             'address' => $this->normalizeNullableString('address'),
             'country' => $this->normalizeNullableString('country'),
             'date_of_birth' => $this->normalizeNullableString('date_of_birth'),
+            'remove_avatar' => $this->boolean('remove_avatar'),
         ]);
     }
 

@@ -8,10 +8,12 @@ use App\Models\Admin;
 use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SalesOrderService
@@ -28,7 +30,7 @@ class SalesOrderService
         $driver = DB::connection()->getDriverName();
 
         return SalesOrder::query()
-            ->with(['items', 'creator:id,name,email'])
+            ->with(['items.product:id,photos', 'creator:id,name,email', 'invoice'])
             ->when($status !== '' && $status !== 'all', fn (Builder $query) => $query->where('status', $status))
             ->when($search !== '', function (Builder $query) use ($driver, $search) {
                 if ($driver === 'pgsql') {
@@ -228,15 +230,402 @@ class SalesOrderService
                 }
             }
 
-            return $order->load(['items', 'creator:id,name,email']);
+            return $order->load(['items.product:id,photos', 'creator:id,name,email', 'invoice']);
         });
     }
 
     public function find(string $orderId): SalesOrder
     {
         return SalesOrder::query()
-            ->with(['items', 'creator:id,name,email'])
+            ->with(['items.product:id,photos', 'creator:id,name,email', 'invoice'])
             ->findOrFail($orderId);
+    }
+
+    public function updateFulfillment(Admin $admin, string $orderId, array $payload): SalesOrder
+    {
+        return DB::transaction(function () use ($admin, $orderId, $payload): SalesOrder {
+            /** @var SalesOrder $order */
+            $order = SalesOrder::query()
+                ->with(['items.product:id,photos', 'creator:id,name,email', 'invoice'])
+                ->findOrFail($orderId);
+
+            $action = Str::lower(trim((string) ($payload['action'] ?? '')));
+
+            return match ($action) {
+                'confirm' => $this->confirmOrder($order, $admin),
+                'ship' => $this->shipOrder($order, $admin, $payload),
+                'cancel' => $this->cancelOrder($order, $admin),
+                default => throw ValidationException::withMessages([
+                    'action' => ['Aksi pemenuhan pesanan tidak dikenali.'],
+                ]),
+            };
+        });
+    }
+
+    public function updateStatus(Admin $admin, string $orderId, string $nextStatus): SalesOrder
+    {
+        return DB::transaction(function () use ($admin, $orderId, $nextStatus): SalesOrder {
+            /** @var SalesOrder $order */
+            $order = SalesOrder::query()
+                ->with(['items.product:id,photos', 'creator:id,name,email', 'invoice'])
+                ->findOrFail($orderId);
+
+            $normalized = Str::lower(trim($nextStatus));
+
+            if ($normalized === 'pending') {
+                $order->status = 'dibayar';
+                $order->payment_status = 'pending';
+                $order->settled_at = null;
+                $order->updated_by = (string) $admin->id;
+                $order->save();
+
+                if ($order->invoice) {
+                    $order->invoice->payment_status = 'pending';
+                    $order->invoice->paid_at = null;
+                    $order->invoice->save();
+                }
+
+                return $this->refreshOrder($order);
+            }
+
+            if ($normalized === 'paid') {
+                $this->markOrderAsPaid($order);
+                $order->status = 'dibayar';
+                $order->updated_by = (string) $admin->id;
+                $order->save();
+
+                return $this->refreshOrder($order);
+            }
+
+            if (in_array($normalized, ['diproses', 'dikirim', 'terkirim', 'selesai'], true)) {
+                $this->markOrderAsPaid($order);
+                $order->status = $normalized;
+                $order->updated_by = (string) $admin->id;
+                $order->save();
+
+                return $this->refreshOrder($order);
+            }
+
+            if ($normalized === 'dibatalkan') {
+                $order->status = 'dibatalkan';
+                if (! $this->hasSuccessfulPayment($order)) {
+                    $order->payment_status = 'cancel';
+                }
+                $order->updated_by = (string) $admin->id;
+                $order->save();
+
+                if ($order->invoice && (string) $order->invoice->payment_status !== 'paid') {
+                    $order->invoice->payment_status = 'failed';
+                    $order->invoice->save();
+                }
+
+                return $this->refreshOrder($order);
+            }
+
+            throw ValidationException::withMessages([
+                'status' => ['Status pesanan tidak dikenali.'],
+            ]);
+        });
+    }
+
+    public function syncTrackingStatus(array $payload): SalesOrder
+    {
+        return DB::transaction(function () use ($payload): SalesOrder {
+            $orderNumber = trim((string) ($payload['order_number'] ?? ''));
+            $trackingNumber = trim((string) ($payload['tracking_number'] ?? $payload['resi_number'] ?? $payload['waybill'] ?? ''));
+            $trackingUrl = trim((string) ($payload['tracking_url'] ?? ''));
+            $courier = trim((string) ($payload['shipping_courier'] ?? $payload['courier'] ?? ''));
+            $rawStatus = trim((string) ($payload['status'] ?? $payload['tracking_status'] ?? $payload['delivery_status'] ?? ''));
+
+            if ($rawStatus === '') {
+                throw ValidationException::withMessages([
+                    'status' => ['Status tracking vendor wajib diisi.'],
+                ]);
+            }
+
+            if ($orderNumber === '' && $trackingNumber === '') {
+                throw ValidationException::withMessages([
+                    'tracking_number' => ['order_number atau tracking_number wajib dikirim oleh vendor.'],
+                ]);
+            }
+
+            $query = SalesOrder::query()
+                ->with(['items.product:id,photos', 'creator:id,name,email', 'invoice']);
+
+            if ($orderNumber !== '') {
+                $query->where('order_number', $orderNumber);
+            }
+
+            if ($trackingNumber !== '') {
+                $query->when(
+                    $orderNumber !== '',
+                    fn (Builder $builder) => $builder->orWhere('shipping_metadata->tracking_number', $trackingNumber),
+                    fn (Builder $builder) => $builder->where('shipping_metadata->tracking_number', $trackingNumber)
+                );
+            }
+
+            /** @var SalesOrder|null $order */
+            $order = $query->lockForUpdate()->first();
+
+            if (! $order) {
+                throw ValidationException::withMessages([
+                    'order' => ['Pesanan untuk update tracking vendor tidak ditemukan.'],
+                ]);
+            }
+
+            $normalizedStatus = $this->normalizeVendorTrackingStatus($rawStatus);
+            $metadata = is_array($order->shipping_metadata) ? $order->shipping_metadata : [];
+
+            if ($trackingNumber !== '') {
+                $metadata['tracking_number'] = $trackingNumber;
+            }
+
+            if ($trackingUrl !== '') {
+                $metadata['tracking_url'] = $trackingUrl;
+            }
+
+            if ($courier !== '') {
+                $order->shipping_courier = $courier;
+            }
+
+            $metadata['tracking_status'] = $normalizedStatus;
+            $metadata['vendor_tracking_status'] = $rawStatus;
+            $metadata['tracking_synced_at'] = now()->toISOString();
+            $metadata['tracking_last_source'] = 'vendor_webhook';
+
+            if ($normalizedStatus === 'delivered') {
+                $metadata['delivered_at'] = $this->resolveTrackingDate($payload['delivered_at'] ?? $payload['updated_at'] ?? null)
+                    ?? now()->toISOString();
+
+                if (! in_array((string) $order->status, ['selesai', 'dibatalkan'], true)) {
+                    $order->status = 'terkirim';
+                }
+            }
+
+            $order->shipping_metadata = $metadata;
+            $order->save();
+
+            return $this->refreshOrder($order);
+        });
+    }
+
+    public function delete(string $orderId): void
+    {
+        DB::transaction(function () use ($orderId): void {
+            /** @var SalesOrder $order */
+            $order = SalesOrder::query()
+                ->with(['invoice'])
+                ->findOrFail($orderId);
+
+            $lockedStatuses = ['diproses', 'dikirim', 'terkirim', 'selesai'];
+            if (in_array((string) $order->status, $lockedStatuses, true)) {
+                throw ValidationException::withMessages([
+                    'order' => ['Pesanan yang sudah diproses atau dikirim tidak dapat dihapus.'],
+                ]);
+            }
+
+            $successfulPaymentStatuses = ['settlement', 'capture', 'paid'];
+            if (in_array(strtolower((string) $order->payment_status), $successfulPaymentStatuses, true)) {
+                throw ValidationException::withMessages([
+                    'order' => ['Pesanan dengan pembayaran berhasil tidak dapat dihapus.'],
+                ]);
+            }
+
+            if ($order->invoice && (string) $order->invoice->payment_status === 'paid') {
+                throw ValidationException::withMessages([
+                    'order' => ['Invoice yang sudah lunas tidak dapat dihapus.'],
+                ]);
+            }
+
+            $order->delete();
+        });
+    }
+
+    private function confirmOrder(SalesOrder $order, Admin $admin): SalesOrder
+    {
+        if (! $this->hasSuccessfulPayment($order)) {
+            throw ValidationException::withMessages([
+                'order' => ['Pesanan belum memiliki pembayaran yang berhasil untuk dikonfirmasi.'],
+            ]);
+        }
+
+        if ((string) $order->status !== 'dibayar') {
+            throw ValidationException::withMessages([
+                'order' => ['Hanya pesanan dengan status dibayar yang dapat dikonfirmasi ke proses fulfillment.'],
+            ]);
+        }
+
+        $order->status = 'diproses';
+        $order->updated_by = (string) $admin->id;
+        $order->save();
+
+        return $this->refreshOrder($order);
+    }
+
+    private function shipOrder(SalesOrder $order, Admin $admin, array $payload): SalesOrder
+    {
+        if (! $this->hasSuccessfulPayment($order)) {
+            throw ValidationException::withMessages([
+                'order' => ['Pesanan belum lunas sehingga belum dapat diberi resi pengiriman.'],
+            ]);
+        }
+
+        if (! in_array((string) $order->status, ['diproses', 'dikirim'], true)) {
+            throw ValidationException::withMessages([
+                'order' => ['Resi hanya dapat diinput untuk pesanan yang sedang diproses atau sudah dikirim.'],
+            ]);
+        }
+
+        $trackingNumber = trim((string) ($payload['tracking_number'] ?? ''));
+        $trackingUrl = trim((string) ($payload['tracking_url'] ?? ''));
+        $courier = trim((string) ($payload['shipping_courier'] ?? ''));
+        $service = trim((string) ($payload['shipping_service'] ?? ''));
+        $adminNote = trim((string) ($payload['note'] ?? ''));
+
+        $metadata = is_array($order->shipping_metadata) ? $order->shipping_metadata : [];
+        $metadata['tracking_number'] = $trackingNumber;
+        $metadata['shipped_at'] = now()->toISOString();
+        $metadata['shipped_by'] = (string) $admin->id;
+
+        if ($trackingUrl !== '') {
+            $metadata['tracking_url'] = $trackingUrl;
+        } else {
+            unset($metadata['tracking_url']);
+        }
+
+        if ($adminNote !== '') {
+            $metadata['admin_note'] = $adminNote;
+        }
+
+        if ($courier !== '') {
+            $order->shipping_courier = $courier;
+        }
+
+        if ($service !== '') {
+            $order->shipping_service = $service;
+        }
+
+        $order->status = 'dikirim';
+        $order->shipping_metadata = $metadata;
+        $order->updated_by = (string) $admin->id;
+        $order->save();
+
+        return $this->refreshOrder($order);
+    }
+
+    private function cancelOrder(SalesOrder $order, Admin $admin): SalesOrder
+    {
+        if ($this->hasSuccessfulPayment($order)) {
+            throw ValidationException::withMessages([
+                'order' => ['Pesanan yang sudah dibayar tidak dapat dibatalkan dari daftar ini. Gunakan alur refund terpisah.'],
+            ]);
+        }
+
+        if (in_array((string) $order->status, ['dikirim', 'terkirim', 'selesai', 'dibatalkan'], true)) {
+            throw ValidationException::withMessages([
+                'order' => ['Status pesanan saat ini tidak dapat dibatalkan.'],
+            ]);
+        }
+
+        $order->status = 'dibatalkan';
+        $order->payment_status = 'cancel';
+        $order->updated_by = (string) $admin->id;
+        $order->save();
+
+        if ($order->invoice && (string) $order->invoice->payment_status !== 'paid') {
+            $order->invoice->payment_status = 'failed';
+            $order->invoice->save();
+        }
+
+        return $this->refreshOrder($order);
+    }
+
+    private function hasSuccessfulPayment(SalesOrder $order): bool
+    {
+        $candidates = [
+            Str::lower(trim((string) ($order->payment_status ?? ''))),
+            Str::lower(trim((string) ($order->invoice?->payment_status ?? ''))),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (in_array($candidate, ['settlement', 'capture', 'paid'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function markOrderAsPaid(SalesOrder $order): void
+    {
+        $order->payment_status = 'settlement';
+        if ($order->settled_at === null) {
+            $order->settled_at = now();
+        }
+
+        if ($order->invoice) {
+            $order->invoice->payment_status = 'paid';
+            if ($order->invoice->paid_at === null) {
+                $order->invoice->paid_at = now();
+            }
+            $order->invoice->save();
+        }
+    }
+
+    private function normalizeVendorTrackingStatus(string $status): string
+    {
+        $normalized = Str::of($status)
+            ->lower()
+            ->replace(['-', '_'], ' ')
+            ->squish()
+            ->value();
+
+        if (in_array($normalized, [
+            'delivered',
+            'terkirim',
+            'received',
+            'completed',
+            'success',
+            'pod',
+            'proof of delivery',
+            'delivered to customer',
+            'package delivered',
+        ], true)) {
+            return 'delivered';
+        }
+
+        if (in_array($normalized, [
+            'shipped',
+            'in transit',
+            'on delivery',
+            'out for delivery',
+            'delivery process',
+        ], true)) {
+            return 'in_transit';
+        }
+
+        return $normalized !== '' ? $normalized : 'unknown';
+    }
+
+    private function resolveTrackingDate(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->toISOString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function refreshOrder(SalesOrder $order): SalesOrder
+    {
+        /** @var SalesOrder|null $fresh */
+        $fresh = $order->fresh(['items.product:id,photos', 'creator:id,name,email', 'invoice']);
+
+        return $fresh ?? $order->load(['items.product:id,photos', 'creator:id,name,email', 'invoice']);
     }
 
     /**

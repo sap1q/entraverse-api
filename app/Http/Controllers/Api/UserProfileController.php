@@ -11,11 +11,11 @@ use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserProfileController extends Controller
 {
@@ -40,21 +40,24 @@ class UserProfileController extends Controller
             return $this->error('Unauthenticated.', 401);
         }
 
-        $payload = $request->safe()->except(['avatar']);
+        $payload = $request->safe()->except(['avatar', 'remove_avatar']);
         $previousAvatarPath = $user->avatar_path;
         $newAvatarPath = null;
+        $shouldRemoveAvatar = $request->boolean('remove_avatar');
 
-        DB::transaction(function () use ($request, $user, $payload, &$newAvatarPath): void {
+        DB::transaction(function () use ($request, $user, $payload, $shouldRemoveAvatar, &$newAvatarPath): void {
             if ($request->hasFile('avatar')) {
                 $newAvatarPath = $this->storeAvatar($request->file('avatar'));
                 $payload['avatar_path'] = $newAvatarPath;
+            } elseif ($shouldRemoveAvatar) {
+                $payload['avatar_path'] = null;
             }
 
             $user->fill($payload);
             $user->save();
         });
 
-        if (is_string($newAvatarPath) && $newAvatarPath !== '' && is_string($previousAvatarPath) && $previousAvatarPath !== '') {
+        if (($shouldRemoveAvatar || (is_string($newAvatarPath) && $newAvatarPath !== '')) && is_string($previousAvatarPath) && $previousAvatarPath !== '') {
             $this->deleteAvatar($previousAvatarPath);
         }
 
@@ -63,7 +66,7 @@ class UserProfileController extends Controller
         return $this->success(new UserProfileResource($user), 'Profil user berhasil diperbarui.');
     }
 
-    public function avatar(User $user): Response
+    public function avatar(User $user): BinaryFileResponse
     {
         $avatarPath = is_string($user->avatar_path) ? trim($user->avatar_path) : '';
         if ($avatarPath === '' || ! Storage::disk('public')->exists($avatarPath)) {

@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\MarketplaceMapping;
 use App\Services\Pricing\PricingCalculator;
+use App\Support\ProductVariantKey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ProductResource extends JsonResource
@@ -17,10 +20,23 @@ class ProductResource extends JsonResource
         $variantPricingItems = array_is_list($variantPricing)
             ? $variantPricing
             : (is_array($variantPricing['items'] ?? null) ? $variantPricing['items'] : []);
+        static $marketplaceMappingsTableExists;
+
+        if ($marketplaceMappingsTableExists === null) {
+            $marketplaceMappingsTableExists = Schema::hasTable('marketplace_mappings');
+        }
+
+        $marketplaceMappings = $marketplaceMappingsTableExists
+            ? MarketplaceMapping::query()
+                ->where('product_id', $this->id)
+                ->get()
+                ->groupBy(fn (MarketplaceMapping $mapping) => $mapping->channel . ':' . $mapping->variant_key)
+            : collect();
 
         $normalizedPricing = collect($variantPricingItems)
             ->filter(fn ($item) => is_array($item))
-            ->map(function (array $item) {
+            ->values()
+            ->map(function (array $item, int $index) use ($marketplaceMappings) {
                 $warehouseStock = [];
                 if (is_array($item['warehouse_stock'] ?? null)) {
                     foreach ($item['warehouse_stock'] as $warehouse => $qty) {
@@ -50,6 +66,28 @@ class ProductResource extends JsonResource
                 $item['margin_percent'] = (float) ($item['margin_percent'] ?? 0);
                 $item['tiktok_price'] = (float) ($item['tiktok_price'] ?? ($item['tokopedia_price'] ?? 0));
                 $item['tiktok_fee'] = (float) ($item['tiktok_fee'] ?? ($item['tokopedia_fee'] ?? 0));
+                $variantKey = ProductVariantKey::resolve($item, $index);
+                $tiktokMapping = $marketplaceMappings->get('tiktok:' . $variantKey)?->first();
+                $shopeeMapping = $marketplaceMappings->get('shopee:' . $variantKey)?->first();
+                $item['id'] = $variantKey;
+                $item['marketplace_mapping'] = [
+                    'tiktok' => $tiktokMapping ? [
+                        'id' => (string) $tiktokMapping->id,
+                        'status' => (string) $tiktokMapping->status,
+                        'marketplace_product_id' => $tiktokMapping->marketplace_product_id,
+                        'marketplace_sku_id' => $tiktokMapping->marketplace_sku_id,
+                        'last_synced_at' => optional($tiktokMapping->last_synced_at)?->toISOString(),
+                        'last_error' => $tiktokMapping->last_error,
+                    ] : null,
+                    'shopee' => $shopeeMapping ? [
+                        'id' => (string) $shopeeMapping->id,
+                        'status' => (string) $shopeeMapping->status,
+                        'marketplace_product_id' => $shopeeMapping->marketplace_product_id,
+                        'marketplace_sku_id' => $shopeeMapping->marketplace_sku_id,
+                        'last_synced_at' => optional($shopeeMapping->last_synced_at)?->toISOString(),
+                        'last_error' => $shopeeMapping->last_error,
+                    ] : null,
+                ];
                 return $item;
             })
             ->values();
@@ -102,7 +140,8 @@ class ProductResource extends JsonResource
             ->values();
 
         $mainImage = $normalizedPhotos->firstWhere('is_primary', true) ?? $normalizedPhotos->first();
-        $priceBreakdown = app(PricingCalculator::class)->fromProduct($this->resource)->toArray();
+        $includePriceBreakdown = (bool) ($request->attributes->get('include_price_breakdown', false)
+            || $request->boolean('include_price_breakdown'));
         $brandModel = $this->relationLoaded('brandModel') ? $this->brandModel : null;
         $status = strtolower(trim((string) ($this->status ?? '')));
         if (! in_array($status, ['active', 'inactive', 'draft'], true)) {
@@ -132,7 +171,7 @@ class ProductResource extends JsonResource
             ]
             : null;
 
-        return [
+        $payload = [
             'id' => (string) $this->id,
             'uuid' => (string) $this->id,
             'name' => $this->name,
@@ -154,7 +193,6 @@ class ProductResource extends JsonResource
                 'total_stock' => $totalStock,
                 ...$inventory,
             ],
-            'price_breakdown' => $priceBreakdown,
             'variants' => $variants,
             'variant_pricing' => $normalizedPricing->all(),
             'photos' => $normalizedPhotos->all(),
@@ -171,5 +209,11 @@ class ProductResource extends JsonResource
             'created_at' => optional($this->created_at)?->toISOString(),
             'updated_at' => optional($this->updated_at)?->toISOString(),
         ];
+
+        if ($includePriceBreakdown) {
+            $payload['price_breakdown'] = app(PricingCalculator::class)->fromProduct($this->resource)->toArray();
+        }
+
+        return $payload;
     }
 }

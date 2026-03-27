@@ -51,6 +51,9 @@ return [
         'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
         'timeout' => env('RAJAONGKIR_TIMEOUT', 20),
         'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY_ID'),
+        'origin_district_id' => env('RAJAONGKIR_ORIGIN_DISTRICT_ID'),
+        'strict_mode' => env('RAJAONGKIR_STRICT_MODE', true),
+        'packaging_weight_grams' => env('RAJAONGKIR_PACKAGING_WEIGHT_GRAMS', 100),
         'cache_ttl_hours' => env('RAJAONGKIR_CACHE_TTL_HOURS', 6),
     ],
 
@@ -61,6 +64,28 @@ return [
         'snap_base_url' => env('MIDTRANS_SNAP_BASE_URL'),
         'api_base_url' => env('MIDTRANS_API_BASE_URL'),
         'timeout' => env('MIDTRANS_TIMEOUT', 30),
+    ],
+
+    'tracking' => [
+        'webhook_secret' => env('TRACKING_WEBHOOK_SECRET'),
+    ],
+
+    'tiktok_shop' => [
+        'app_key' => env('TIKTOK_SHOP_APP_KEY'),
+        'app_secret' => env('TIKTOK_SHOP_APP_SECRET'),
+        'authorize_url' => env('TIKTOK_SHOP_AUTHORIZE_URL', 'https://services.tiktokshop.com/open/authorize'),
+        'token_url' => env('TIKTOK_SHOP_TOKEN_URL', 'https://auth.tiktok-shops.com/api/v2/token/get'),
+        'redirect_uri' => env('TIKTOK_SHOP_REDIRECT_URI'),
+        'timeout' => env('TIKTOK_SHOP_TIMEOUT', 30),
+    ],
+
+    'shopee' => [
+        'partner_id' => env('SHOPEE_PARTNER_ID'),
+        'partner_key' => env('SHOPEE_PARTNER_KEY'),
+        'authorize_url' => env('SHOPEE_AUTHORIZE_URL', 'https://partner.shopeemobile.com/api/v2/shop/auth_partner'),
+        'token_url' => env('SHOPEE_TOKEN_URL', 'https://partner.shopeemobile.com/api/v2/auth/token/get'),
+        'redirect_uri' => env('SHOPEE_REDIRECT_URI'),
+        'timeout' => env('SHOPEE_TIMEOUT', 30),
     ],
 
 ];
