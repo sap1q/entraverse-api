@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CustomerOrderController;
 use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\ShippingTrackingCallbackController;
+use App\Http\Controllers\Api\TradeInTransactionController as CustomerTradeInTransactionController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\V1\BannerController;
 use App\Http\Controllers\Api\V1\BrandController;
@@ -22,7 +23,9 @@ use App\Http\Controllers\Api\V1\RajaOngkirRegionController;
 use App\Http\Controllers\Api\V1\SalesOrderController;
 use App\Http\Controllers\Api\V1\StoreOriginController;
 use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\TradeInTransactionController;
 use App\Http\Controllers\Api\V1\UserAddressController;
+use App\Http\Controllers\Api\V1\WarrantyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,7 +41,13 @@ Route::middleware(['auth:sanctum', 'customer'])->prefix('orders')->name('orders.
     Route::get('/', [CustomerOrderController::class, 'index'])->name('index');
     Route::get('{orderId}', [CustomerOrderController::class, 'show'])->name('show');
     Route::match(['get', 'post'], '{orderId}/payment', [CustomerOrderController::class, 'payment'])->name('payment');
+    Route::post('{orderId}/cancel', [CustomerOrderController::class, 'cancel'])->name('cancel');
     Route::post('{orderId}/received', [CustomerOrderController::class, 'received'])->name('received');
+    Route::post('{orderId}/trade-in-fulfillment', [CustomerOrderController::class, 'submitTradeInFulfillment'])->name('trade-in-fulfillment');
+});
+
+Route::middleware(['auth:sanctum', 'customer'])->prefix('trade-in')->name('trade-in.')->group(function (): void {
+    Route::post('transactions', [CustomerTradeInTransactionController::class, 'store'])->name('transactions.store');
 });
 
 Route::get('user/avatar/{user}', [UserProfileController::class, 'avatar'])->name('user.avatar.show');
@@ -84,6 +93,10 @@ Route::prefix('v1')->group(function (): void {
 
     Route::prefix('banners')->name('banners.')->group(function (): void {
         Route::get('active', [BannerController::class, 'getActiveBanners'])->name('active');
+    });
+
+    Route::prefix('warranties')->name('warranties.')->group(function (): void {
+        Route::post('lookup', [WarrantyController::class, 'lookup'])->name('lookup');
     });
 
     Route::middleware('auth:sanctum')->prefix('user-addresses')->name('user-addresses.')->group(function (): void {
@@ -138,6 +151,12 @@ Route::prefix('v1')->group(function (): void {
                 Route::delete('/{orderId}', [SalesOrderController::class, 'destroy'])->name('destroy');
             });
 
+            Route::prefix('trade-in-transactions')->name('trade-in-transactions.')->group(function (): void {
+                Route::get('/', [TradeInTransactionController::class, 'index'])->name('index');
+                Route::patch('/{transactionId}/status', [TradeInTransactionController::class, 'updateStatus'])
+                    ->name('update-status');
+            });
+
             Route::prefix('categories')->name('categories.')->group(function (): void {
                 Route::post('/', [CategoryController::class, 'store'])->name('store');
                 Route::put('{category}', [CategoryController::class, 'update'])->name('update');
@@ -169,6 +188,15 @@ Route::prefix('v1')->group(function (): void {
                 Route::patch('{brand}', [BrandController::class, 'update'])->name('patch');
                 Route::post('{brand}', [BrandController::class, 'update'])->name('update.post');
                 Route::delete('{brand}', [BrandController::class, 'destroy'])->name('destroy');
+            });
+
+            Route::prefix('warranties')->name('warranties.')->group(function (): void {
+                Route::get('/', [WarrantyController::class, 'index'])->name('index');
+                Route::post('/', [WarrantyController::class, 'store'])->name('store');
+                Route::get('{warranty}', [WarrantyController::class, 'show'])->name('show');
+                Route::put('{warranty}', [WarrantyController::class, 'update'])->name('update');
+                Route::patch('{warranty}', [WarrantyController::class, 'update'])->name('patch');
+                Route::delete('{warranty}', [WarrantyController::class, 'destroy'])->name('destroy');
             });
 
             Route::prefix('shipping')->name('shipping.')->group(function (): void {

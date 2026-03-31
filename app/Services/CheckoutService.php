@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\StockMutation;
+use App\Models\TradeInTransaction;
 use App\Models\User;
 use App\Models\UserAddress;
 use Carbon\Carbon;
@@ -62,6 +63,12 @@ class CheckoutService
         );
 
         if ($prepared !== null) {
+            if (($prepared['purchase_items'] ?? []) === []) {
+                throw ValidationException::withMessages([
+                    'items' => ['Tidak ada item pembelian yang memerlukan ongkir pada checkout ini.'],
+                ]);
+            }
+
             $itemWeight = max(1, (int) ($prepared['item_weight'] ?? 0));
             $packagingWeight = max(0, (int) ($prepared['packaging_weight'] ?? 0));
             $normalizedWeight = max(1, (int) ($prepared['weight'] ?? 0));
@@ -101,17 +108,62 @@ class CheckoutService
     /**
      * @param array<string, mixed> $payload
      * @return array{
-     *   order: SalesOrder,
-     *   snap_token: string,
+     *   kind: 'sales_order'|'trade_in',
+     *   requires_payment: bool,
+     *   order: SalesOrder|null,
+     *   trade_in_transactions: array<int, TradeInTransaction>,
+     *   snap_token: string|null,
      *   snap_redirect_url: string|null,
-     *   shipping: array{service: string, description: ?string, cost: int, etd: ?string, note: ?string},
+     *   shipping: array{service: string, description: ?string, cost: int, etd: ?string, note: ?string}|null,
      *   shipping_weight: int
      * }
      */
     public function processCheckout(User $user, array $payload): array
     {
         $result = DB::transaction(function () use ($user, $payload): array {
+            $itemsPayload = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+            if ($itemsPayload === []) {
+                throw ValidationException::withMessages([
+                    'items' => ['Item checkout wajib diisi.'],
+                ]);
+            }
+
+            $prepared = $this->prepareOrderItems($itemsPayload);
+            $purchaseItems = is_array($prepared['purchase_items'] ?? null) ? $prepared['purchase_items'] : [];
+            $tradeInItems = is_array($prepared['trade_in_items'] ?? null) ? $prepared['trade_in_items'] : [];
+            $tradeInTransactions = $this->resolveTradeInTransactions($user, $tradeInItems);
+
+            if ($purchaseItems === []) {
+                if ($tradeInTransactions->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'items' => ['Checkout ini tidak memiliki item pembelian maupun pengajuan trade-in yang valid.'],
+                    ]);
+                }
+
+                $tradeInTransactions->each(function (TradeInTransaction $transaction): void {
+                    $transaction->sales_order_id = null;
+                    $transaction->trade_in_only = true;
+                    $transaction->save();
+                });
+
+                return [
+                    'kind' => 'trade_in',
+                    'requires_payment' => false,
+                    'order_id' => null,
+                    'trade_in_transactions' => $tradeInTransactions->values()->all(),
+                    'shipping' => null,
+                    'shipping_weight' => 0,
+                    'items' => [],
+                ];
+            }
+
             $addressId = trim((string) ($payload['address_id'] ?? ''));
+            if ($addressId === '') {
+                throw ValidationException::withMessages([
+                    'address_id' => ['Alamat pengiriman wajib dipilih untuk checkout produk baru.'],
+                ]);
+            }
+
             $address = UserAddress::query()
                 ->where('user_id', $user->id)
                 ->where('is_active', true)
@@ -124,23 +176,20 @@ class CheckoutService
                 ]);
             }
 
-            $shippingDestination = $this->resolveShippingDestinationFromAddress($address);
-            $destinationCityId = $shippingDestination['city_id'];
-            $destinationDistrictId = $shippingDestination['district_id'];
-
-            $itemsPayload = is_array($payload['items'] ?? null) ? $payload['items'] : [];
-            if ($itemsPayload === []) {
+            $courier = Str::lower(trim((string) ($payload['courier'] ?? '')));
+            if ($courier === '') {
                 throw ValidationException::withMessages([
-                    'items' => ['Item checkout wajib diisi.'],
+                    'courier' => ['Kurir wajib dipilih untuk checkout produk baru.'],
                 ]);
             }
 
-            $prepared = $this->prepareOrderItems($itemsPayload);
-            $courier = Str::lower(trim((string) ($payload['courier'] ?? '')));
+            $shippingDestination = $this->resolveShippingDestinationFromAddress($address);
+            $destinationCityId = $shippingDestination['city_id'];
+            $destinationDistrictId = $shippingDestination['district_id'];
             $shippingOrigin = $this->rajaOngkirService->getShippingOrigin();
             $shippingServices = $this->rajaOngkirService->getShippingCost(
                 destinationCityId: $destinationCityId,
-                weight: $prepared['weight'],
+                weight: (int) ($prepared['weight'] ?? 0),
                 courier: $courier,
                 destinationDistrictId: $destinationDistrictId
             );
@@ -150,8 +199,13 @@ class CheckoutService
             );
 
             $shippingCost = (float) $selectedService['cost'];
-            $subtotal = $prepared['subtotal'];
-            $totalAmount = max(0.0, $subtotal + $shippingCost);
+            $subtotal = (float) ($prepared['subtotal'] ?? 0);
+            $requestedTradeInDiscount = $tradeInTransactions->isNotEmpty()
+                ? max(0.0, (float) ($payload['trade_in_discount'] ?? 0))
+                : 0.0;
+            $tradeInDiscount = min($requestedTradeInDiscount, $subtotal);
+            $totalAmount = max(0.0, ($subtotal - $tradeInDiscount) + $shippingCost);
+            $requiresPayment = $totalAmount > 0.0;
             $orderNumber = $this->generateOrderNumber();
 
             $order = SalesOrder::query()->create([
@@ -165,16 +219,17 @@ class CheckoutService
                 'currency' => 'IDR',
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
-                'discount_amount' => 0,
+                'discount_amount' => $tradeInDiscount,
                 'total_amount' => $totalAmount,
                 'notes' => $payload['notes'] ?? null,
-                'payment_method' => 'midtrans_snap',
-                'payment_status' => 'pending',
+                'payment_method' => $requiresPayment ? 'midtrans_snap' : 'trade_in_review',
+                'payment_status' => $requiresPayment ? 'pending' : 'paid',
                 'payment_reference' => $orderNumber,
+                'settled_at' => $requiresPayment ? null : now(),
                 'shipping_courier' => $courier,
                 'shipping_service' => $selectedService['service'],
                 'shipping_etd' => $selectedService['etd'],
-                'shipping_weight' => $prepared['weight'],
+                'shipping_weight' => (int) ($prepared['weight'] ?? 0),
                 'shipping_destination_city_id' => $destinationCityId,
                 'shipping_metadata' => [
                     'origin' => [
@@ -190,15 +245,17 @@ class CheckoutService
                         'city_id' => $destinationCityId,
                         'district_id' => $destinationDistrictId,
                     ],
-                    'item_weight' => $prepared['item_weight'],
-                    'packaging_weight' => $prepared['packaging_weight'],
+                    'item_weight' => (int) ($prepared['item_weight'] ?? 0),
+                    'packaging_weight' => (int) ($prepared['packaging_weight'] ?? 0),
                     'strict_mode' => $this->isStrictShippingMode(),
                     'service_description' => $selectedService['description'],
                     'service_note' => $selectedService['note'],
+                    'trade_in_discount' => $tradeInDiscount,
+                    'requested_trade_in_discount' => $requestedTradeInDiscount,
                 ],
             ]);
 
-            foreach ($prepared['items'] as $item) {
+            foreach ($purchaseItems as $item) {
                 SalesOrderItem::query()->create([
                     'sales_order_id' => (string) $order->id,
                     'product_id' => (string) $item['product_id'],
@@ -217,30 +274,71 @@ class CheckoutService
             Invoice::query()->create([
                 'order_id' => (string) $order->id,
                 'invoice_number' => $this->generateInvoiceNumber(),
-                'payment_method' => 'Midtrans Snap',
+                'payment_method' => $requiresPayment ? 'Midtrans Snap' : 'Tanpa Pembayaran',
                 'amount_total' => $totalAmount,
-                'payment_status' => 'pending',
+                'payment_status' => $requiresPayment ? 'pending' : 'paid',
+                'paid_at' => $requiresPayment ? null : now(),
             ]);
 
-            $this->deductStockWhenOrderCreated($order, $prepared['items']);
+            $tradeInTransactions->each(function (TradeInTransaction $transaction) use ($order): void {
+                $transaction->sales_order_id = (string) $order->id;
+                $transaction->trade_in_only = false;
+                $transaction->save();
+            });
+
+            $this->deductStockWhenOrderCreated($order, $purchaseItems);
 
             return [
+                'kind' => 'sales_order',
+                'requires_payment' => $requiresPayment,
                 'order_id' => (string) $order->id,
+                'trade_in_transactions' => $tradeInTransactions->values()->all(),
                 'shipping' => $selectedService,
-                'item_weight' => $prepared['item_weight'],
-                'packaging_weight' => $prepared['packaging_weight'],
-                'shipping_weight' => $prepared['weight'],
-                'items' => $prepared['items'],
+                'shipping_weight' => (int) ($prepared['weight'] ?? 0),
+                'items' => $purchaseItems,
             ];
         });
 
-        $order = SalesOrder::query()->with(['items', 'invoice'])->findOrFail((string) $result['order_id']);
+        if (($result['kind'] ?? 'sales_order') === 'trade_in') {
+            return [
+                'kind' => 'trade_in',
+                'requires_payment' => false,
+                'order' => null,
+                'trade_in_transactions' => is_array($result['trade_in_transactions'] ?? null)
+                    ? $result['trade_in_transactions']
+                    : [],
+                'snap_token' => null,
+                'snap_redirect_url' => null,
+                'shipping' => null,
+                'shipping_weight' => 0,
+            ];
+        }
+
+        $order = SalesOrder::query()
+            ->with(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct'])
+            ->findOrFail((string) $result['order_id']);
+
+        if (! (bool) ($result['requires_payment'] ?? true)) {
+            return [
+                'kind' => 'sales_order',
+                'requires_payment' => false,
+                'order' => $order,
+                'trade_in_transactions' => is_array($result['trade_in_transactions'] ?? null)
+                    ? $result['trade_in_transactions']
+                    : [],
+                'snap_token' => null,
+                'snap_redirect_url' => null,
+                'shipping' => $result['shipping'],
+                'shipping_weight' => (int) ($result['shipping_weight'] ?? 0),
+            ];
+        }
+
         $snap = $this->midtransService->createSnapToken(
             $this->buildSnapPayload(
                 order: $order,
                 user: $user,
                 items: is_array($result['items']) ? $result['items'] : [],
-                shippingService: $result['shipping']
+                shippingService: is_array($result['shipping'] ?? null) ? $result['shipping'] : []
             )
         );
 
@@ -257,11 +355,16 @@ class CheckoutService
         ]);
 
         return [
-            'order' => $order->fresh(['items.product', 'invoice']),
+            'kind' => 'sales_order',
+            'requires_payment' => true,
+            'order' => $order->fresh(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct']),
+            'trade_in_transactions' => is_array($result['trade_in_transactions'] ?? null)
+                ? $result['trade_in_transactions']
+                : [],
             'snap_token' => $snap['token'],
             'snap_redirect_url' => $snap['redirect_url'],
             'shipping' => $result['shipping'],
-            'shipping_weight' => $result['shipping_weight'],
+            'shipping_weight' => (int) ($result['shipping_weight'] ?? 0),
         ];
     }
 
@@ -464,12 +567,16 @@ class CheckoutService
      *      landed_cost: float,
      *      line_total: float,
      *      metadata: array<string, mixed>
-     *   }>
+     *   }>,
+     *   purchase_items: array<int, array<string, mixed>>,
+     *   trade_in_items: array<int, array<string, mixed>>
      * }
      */
     private function prepareOrderItems(array $itemsPayload, bool $lockProducts = true): array
     {
         $preparedItems = [];
+        $purchaseItems = [];
+        $tradeInItems = [];
         $subtotal = 0.0;
         $totalWeight = 0;
 
@@ -482,6 +589,8 @@ class CheckoutService
             $quantity = max(1, (int) ($row['quantity'] ?? 1));
             $variantSku = trim((string) ($row['variant_sku'] ?? ''));
             $selectedVariants = is_array($row['variants'] ?? null) ? $row['variants'] : [];
+            $tradeInTransactionId = trim((string) ($row['trade_in_transaction_id'] ?? ''));
+            $tradeInEnabled = (bool) ($row['trade_in_enabled'] ?? false) || $tradeInTransactionId !== '';
 
             /** @var Product|null $product */
             $productQuery = Product::query();
@@ -505,16 +614,18 @@ class CheckoutService
             }
 
             $availableStock = (int) ($variant['stock'] ?? 0);
-            if ($availableStock < $quantity) {
+            if (! $tradeInEnabled && $availableStock < $quantity) {
                 throw ValidationException::withMessages([
                     'items' => ["Stok tidak cukup untuk {$product->name}."],
                 ]);
             }
 
-            $unitPrice = $this->resolveUnitPrice($variant, $product);
-            $lineTotal = $unitPrice * $quantity;
-            $itemWeight = $this->resolveWeightInGram($variant, $product);
-            if ($itemWeight === null) {
+            $warehouse = $this->resolveWarehouse($variant, $product);
+            $landedCost = $this->calculateLandedCost($variant);
+            $resolvedSku = $this->resolveSku($product, $variant);
+            $itemWeight = $tradeInEnabled ? null : $this->resolveWeightInGram($variant, $product);
+
+            if (! $tradeInEnabled && $itemWeight === null) {
                 throw ValidationException::withMessages([
                     'items' => [sprintf(
                         'Berat produk %s belum dikonfigurasi. Lengkapi berat produk sebelum menghitung ongkir.',
@@ -522,29 +633,37 @@ class CheckoutService
                     )],
                 ]);
             }
-            $warehouse = $this->resolveWarehouse($variant, $product);
-            $landedCost = $this->calculateLandedCost($variant);
-            $resolvedSku = $this->resolveSku($product, $variant);
 
-            $preparedItems[] = [
+            $preparedItem = [
                 'product_id' => (string) $product->id,
                 'product_name' => (string) $product->name,
                 'variant_name' => (string) ($variant['label'] ?? $variant['variant_name'] ?? 'Default'),
                 'variant_sku' => $resolvedSku,
                 'warehouse' => $warehouse,
                 'quantity' => $quantity,
-                'unit_price' => $unitPrice,
+                'unit_price' => $tradeInEnabled ? 0.0 : $this->resolveUnitPrice($variant, $product),
                 'landed_cost' => $landedCost,
-                'line_total' => $lineTotal,
+                'line_total' => $tradeInEnabled ? 0.0 : ($this->resolveUnitPrice($variant, $product) * $quantity),
                 'metadata' => [
                     'selected_variants' => $selectedVariants,
                     'item_weight' => $itemWeight,
                     'stock_before_checkout' => $availableStock,
+                    'trade_in_enabled' => $tradeInEnabled,
+                    'trade_in_transaction_id' => $tradeInTransactionId !== '' ? $tradeInTransactionId : null,
+                    'entry_kind' => $tradeInEnabled ? 'trade_in' : 'purchase',
                 ],
             ];
 
-            $subtotal += $lineTotal;
-            $totalWeight += ($itemWeight * $quantity);
+            $preparedItems[] = $preparedItem;
+
+            if ($tradeInEnabled) {
+                $tradeInItems[] = $preparedItem;
+                continue;
+            }
+
+            $purchaseItems[] = $preparedItem;
+            $subtotal += (float) $preparedItem['line_total'];
+            $totalWeight += ((int) $itemWeight * $quantity);
         }
 
         if ($preparedItems === []) {
@@ -553,15 +672,83 @@ class CheckoutService
             ]);
         }
 
-        $packagingWeight = $this->resolvePackagingWeightInGram();
+        $packagingWeight = $purchaseItems === [] ? 0 : $this->resolvePackagingWeightInGram();
 
         return [
             'subtotal' => $subtotal,
-            'item_weight' => max(1, $totalWeight),
+            'item_weight' => $purchaseItems === [] ? 0 : max(1, $totalWeight),
             'packaging_weight' => $packagingWeight,
-            'weight' => max(1, $totalWeight + $packagingWeight),
+            'weight' => $purchaseItems === [] ? 0 : max(1, $totalWeight + $packagingWeight),
             'items' => $preparedItems,
+            'purchase_items' => $purchaseItems,
+            'trade_in_items' => $tradeInItems,
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $preparedItems
+     * @return \Illuminate\Support\Collection<int, TradeInTransaction>
+     */
+    private function resolveTradeInTransactions(User $user, array $preparedItems)
+    {
+        $requiredIds = collect($preparedItems)
+            ->filter(fn (array $item): bool => (bool) ($item['metadata']['trade_in_enabled'] ?? false))
+            ->map(fn (array $item): string => trim((string) ($item['metadata']['trade_in_transaction_id'] ?? '')))
+            ->values();
+
+        if ($requiredIds->contains(fn (string $id): bool => $id === '')) {
+            throw ValidationException::withMessages([
+                'items' => ['Produk trade-in wajib memiliki pengajuan trade-in yang valid sebelum checkout.'],
+            ]);
+        }
+
+        if ($requiredIds->isEmpty()) {
+            return collect();
+        }
+
+        $transactions = TradeInTransaction::query()
+            ->whereIn('id', $requiredIds->all())
+            ->where('user_id', (string) $user->id)
+            ->lockForUpdate()
+            ->get();
+
+        if ($transactions->count() !== $requiredIds->unique()->count()) {
+            throw ValidationException::withMessages([
+                'items' => ['Sebagian data trade-in tidak ditemukan atau bukan milik akun Anda.'],
+            ]);
+        }
+
+        foreach ($transactions as $transaction) {
+            if ($transaction->sales_order_id !== null) {
+                throw ValidationException::withMessages([
+                    'items' => ['Pengajuan trade-in yang sama sudah dipakai pada checkout lain.'],
+                ]);
+            }
+        }
+
+        foreach ($preparedItems as $item) {
+            $metadata = is_array($item['metadata'] ?? null) ? $item['metadata'] : [];
+            if (! (bool) ($metadata['trade_in_enabled'] ?? false)) {
+                continue;
+            }
+
+            $transactionId = trim((string) ($metadata['trade_in_transaction_id'] ?? ''));
+            $matched = $transactions->firstWhere('id', $transactionId);
+
+            if (! $matched instanceof TradeInTransaction) {
+                throw ValidationException::withMessages([
+                    'items' => ['Data trade-in untuk item checkout tidak cocok.'],
+                ]);
+            }
+
+            if ((string) ($matched->requested_product_id ?? '') !== (string) ($item['product_id'] ?? '')) {
+                throw ValidationException::withMessages([
+                    'items' => ['Pengajuan trade-in tidak cocok dengan produk yang sedang di-checkout.'],
+                ]);
+            }
+        }
+
+        return $transactions;
     }
 
     /**
@@ -627,6 +814,15 @@ class CheckoutService
             'quantity' => 1,
             'name' => Str::limit('Ongkir ' . (string) ($order->shipping_service ?? 'Reguler'), 50, ''),
         ];
+
+        if ((float) $order->discount_amount > 0) {
+            $itemDetails[] = [
+                'id' => 'TRADEIN',
+                'price' => -(int) round((float) $order->discount_amount),
+                'quantity' => 1,
+                'name' => Str::limit('Potongan Trade-In', 50, ''),
+            ];
+        }
 
         $appUrl = rtrim((string) config('app.frontend_url', config('app.url', '')), '/');
         $transactionsPath = $appUrl !== '' ? "{$appUrl}/transaksi" : null;
@@ -719,6 +915,11 @@ class CheckoutService
         $order->loadMissing('items');
 
         foreach ($order->items as $item) {
+            $metadata = is_array($item->metadata) ? $item->metadata : [];
+            if ((bool) ($metadata['trade_in_enabled'] ?? false)) {
+                continue;
+            }
+
             $product = Product::query()
                 ->lockForUpdate()
                 ->find($item->product_id);
@@ -779,7 +980,14 @@ class CheckoutService
      */
     private function deductStockWhenOrderCreated(SalesOrder $order, array $preparedItems): void
     {
+        $deductedAnyStock = false;
+
         foreach ($preparedItems as $item) {
+            $metadata = is_array($item['metadata'] ?? null) ? $item['metadata'] : [];
+            if ((bool) ($metadata['trade_in_enabled'] ?? false)) {
+                continue;
+            }
+
             $product = Product::query()
                 ->lockForUpdate()
                 ->find((string) ($item['product_id'] ?? ''));
@@ -846,9 +1054,13 @@ class CheckoutService
                 ),
                 'user_id' => null,
             ]);
+
+            $deductedAnyStock = true;
         }
 
-        $this->markStockAsDeducted($order, 'checkout_created');
+        if ($deductedAnyStock) {
+            $this->markStockAsDeducted($order, 'checkout_created');
+        }
     }
 
     private function hasDeductedStock(SalesOrder $order): bool
@@ -883,14 +1095,21 @@ class CheckoutService
         return $fallback !== '' ? $fallback : 'Gudang Utama';
     }
 
-    private function resolveUnitPrice(array $variant, Product $product): float
+    private function resolveUnitPrice(array $variant, Product $product, bool $preferOffline = false): float
     {
-        $candidates = [
-            (float) ($variant['entraverse_price'] ?? 0),
-            (float) ($variant['offline_price'] ?? 0),
-            (float) ($variant['price'] ?? 0),
-            (float) Arr::get($product->inventory, 'price', 0),
-        ];
+        $candidates = $preferOffline
+            ? [
+                (float) ($variant['offline_price'] ?? 0),
+                (float) ($variant['entraverse_price'] ?? 0),
+                (float) ($variant['price'] ?? 0),
+                (float) Arr::get($product->inventory, 'price', 0),
+            ]
+            : [
+                (float) ($variant['entraverse_price'] ?? 0),
+                (float) ($variant['offline_price'] ?? 0),
+                (float) ($variant['price'] ?? 0),
+                (float) Arr::get($product->inventory, 'price', 0),
+            ];
 
         foreach ($candidates as $candidate) {
             if ($candidate > 0) {

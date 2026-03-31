@@ -72,6 +72,11 @@ class SalesOrder extends Model
         return $this->hasMany(SalesOrderItem::class);
     }
 
+    public function tradeInTransactions(): HasMany
+    {
+        return $this->hasMany(TradeInTransaction::class, 'sales_order_id');
+    }
+
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class, 'order_id');

@@ -28,6 +28,7 @@ class ShippingCostRequest extends FormRequest
             'items.*.variant_sku' => ['nullable', 'string', 'max:120'],
             'items.*.variants' => ['nullable', 'array'],
             'items.*.variants.*' => ['nullable', 'string', 'max:120'],
+            'items.*.trade_in_enabled' => ['nullable', 'boolean'],
         ];
     }
 

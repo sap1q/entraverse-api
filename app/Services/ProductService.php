@@ -83,6 +83,8 @@ class ProductService
         $status = $this->normalizeStatusFilter($rawStatus);
         $rawFeatured = $filters['featured'] ?? $filters['is_featured'] ?? null;
         $isFeatured = $this->normalizeBooleanFilter($rawFeatured);
+        $rawTradeIn = $filters['trade_in'] ?? $filters['tradeIn'] ?? null;
+        $isTradeIn = $this->normalizeBooleanFilter($rawTradeIn);
         $stockStatus = strtolower(trim((string) ($filters['stock_status'] ?? '')));
         $applyVisible = filter_var($filters['apply_visible'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $excludeFailedSync = filter_var($filters['exclude_failed_sync'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -97,12 +99,13 @@ class ProductService
             ->when($applyVisible, fn (Builder $query) => $query->visible())
             ->when($status !== null, fn (Builder $query) => $query->whereRaw('LOWER(COALESCE(status, product_status)) = ?', [$status]))
             ->when($isFeatured !== null, fn (Builder $query) => $query->where('is_featured', $isFeatured))
+            ->when($isTradeIn !== null, fn (Builder $query) => $query->where('trade_in', $isTradeIn))
             ->when($stockStatus !== '', fn (Builder $query) => $query->where('stock_status', $stockStatus))
             ->when($filters['category_id'] ?? null, fn (Builder $query, string $categoryId) => $query->where('category_id', $categoryId))
             ->when($filters['brand_id'] ?? null, fn (Builder $query, string $brandId) => $query->where('brand_id', $brandId))
             ->when($filters['brand'] ?? null, fn (Builder $query, string $brand) => $query->where('brand', $brand))
             ->when($filters['brands'] ?? null, fn (Builder $query, mixed $brands) => $this->applyBrandFilter($query, $brands))
-            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
+            ->when($filters['category'] ?? null, fn (Builder $query, mixed $category) => $this->applyCategoryFilter($query, $category))
             ->when($filters['categories'] ?? null, fn (Builder $query, mixed $categories) => $this->applyCategoryFilter($query, $categories))
             ->when(array_key_exists('price_min', $filters) && $filters['price_min'] !== null && $filters['price_min'] !== '', function (Builder $query) use ($driver, $filters) {
                 $query->whereRaw($this->resolveInventoryPriceExpression($driver) . ' >= ?', [(float) $filters['price_min']]);
@@ -200,7 +203,20 @@ class ProductService
         $categoryIdTokens = $categoryTokens
             ->filter(fn (string $token) => Str::isUuid($token))
             ->values();
-        $normalized = $categoryTokens->map(fn (string $token) => strtolower($token))->all();
+        $normalized = $categoryTokens
+            ->flatMap(function (string $token): array {
+                $lowered = strtolower($token);
+                $spaced = preg_replace('/[-_]+/', ' ', $lowered) ?? $lowered;
+                $spaced = preg_replace('/\s+/', ' ', trim($spaced)) ?? trim($lowered);
+
+                return array_values(array_unique([
+                    $lowered,
+                    $spaced,
+                ]));
+            })
+            ->filter()
+            ->values()
+            ->all();
 
         $query->where(function (Builder $nested) use ($categoryIdTokens, $normalized) {
             if ($categoryIdTokens->isNotEmpty()) {
@@ -211,9 +227,16 @@ class ProductService
                 $nested->whereIn(DB::raw('LOWER(category)'), $normalized);
             }
 
-            $nested->orWhereHas('category', function (Builder $categoryQuery) use ($normalized) {
-                $categoryQuery
-                    ->whereIn(DB::raw('LOWER(name)'), $normalized);
+            $nested->orWhereHas('category', function (Builder $categoryQuery) use ($categoryIdTokens, $normalized) {
+                if ($categoryIdTokens->isNotEmpty()) {
+                    $categoryQuery
+                        ->whereIn('id', $categoryIdTokens->all())
+                        ->orWhereIn(DB::raw('LOWER(name)'), $normalized);
+
+                    return;
+                }
+
+                $categoryQuery->whereIn(DB::raw('LOWER(name)'), $normalized);
             });
         });
     }
@@ -465,6 +488,7 @@ class ProductService
     private function buildPayload(array $validated, ?Product $product, array $uploadedImages): array
     {
         $existingInventory = is_array($product?->inventory) ? $product->inventory : [];
+        $existingJurnalMetadata = is_array($product?->jurnal_metadata) ? $product->jurnal_metadata : [];
         $requestedInventory = is_array($validated['inventory'] ?? null) ? $validated['inventory'] : [];
         $inventory = array_merge($existingInventory, $requestedInventory);
 
@@ -517,6 +541,18 @@ class ProductService
         $isFeatured = array_key_exists('is_featured', $validated)
             ? (bool) $validated['is_featured']
             : (bool) ($product?->is_featured ?? false);
+        $jurnalMetadata = $existingJurnalMetadata;
+
+        if ($this->shouldLockMarketplaceState($validated)) {
+            $jurnalMetadata['local_marketplace_state'] = [
+                ...((is_array($existingJurnalMetadata['local_marketplace_state'] ?? null)
+                    ? $existingJurnalMetadata['local_marketplace_state']
+                    : [])),
+                'locked' => true,
+                'source' => 'admin_edit',
+                'updated_at' => now()->toISOString(),
+            ];
+        }
 
         return [
             'name' => $this->cleanText((string) ($validated['name'] ?? $product?->name ?? '')),
@@ -531,12 +567,30 @@ class ProductService
             'variant_pricing' => $variantPricing,
             'photos' => $this->resolvePhotos($validated['photos'] ?? null, $uploadedImages, $product?->photos ?? []),
             'spu' => $validated['spu'] ?? $product?->spu ?? $this->generateSpu((string) ($validated['brand'] ?? $product?->brand ?? 'ENTRAVERSE')),
+            'jurnal_metadata' => $jurnalMetadata !== [] ? $jurnalMetadata : null,
             'product_status' => $productStatus,
             'status' => $status,
             'is_featured' => $isFeatured,
             'stock_status' => $stockStatus,
             'stock' => $calculatedStock,
         ];
+    }
+
+    private function shouldLockMarketplaceState(array $validated): bool
+    {
+        if (array_key_exists('variant_pricing', $validated) || array_key_exists('variants', $validated)) {
+            return true;
+        }
+
+        if (array_key_exists('price', $validated) || array_key_exists('weight', $validated)) {
+            return true;
+        }
+
+        $inventory = is_array($validated['inventory'] ?? null) ? $validated['inventory'] : [];
+
+        return array_key_exists('price', $inventory)
+            || array_key_exists('weight', $inventory)
+            || array_key_exists('total_stock', $inventory);
     }
 
     private function normalizeVariantPricing(mixed $value): array

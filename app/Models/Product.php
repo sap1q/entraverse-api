@@ -126,6 +126,11 @@ class Product extends Model
         return $this->hasMany(SalesOrderItem::class);
     }
 
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Warranty::class);
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

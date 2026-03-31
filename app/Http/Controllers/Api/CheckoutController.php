@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProcessCheckoutRequest;
 use App\Models\SalesOrder;
+use App\Models\TradeInTransaction;
 use App\Models\User;
 use App\Services\CheckoutService;
 use App\Services\MidtransService;
@@ -34,7 +35,13 @@ class CheckoutController extends Controller
                 'success' => true,
                 'message' => 'Checkout berhasil diproses.',
                 'data' => [
-                    'order' => $this->transformOrder($order),
+                    'entry_kind' => (string) ($result['kind'] ?? 'sales_order'),
+                    'requires_payment' => (bool) ($result['requires_payment'] ?? true),
+                    'order' => $order instanceof SalesOrder ? $this->transformOrder($order) : null,
+                    'trade_in_transactions' => collect($result['trade_in_transactions'] ?? [])
+                        ->map(fn (TradeInTransaction $transaction): array => $this->transformTradeInTransaction($transaction))
+                        ->values()
+                        ->all(),
                     'snap_token' => $result['snap_token'],
                     'snap_redirect_url' => $result['snap_redirect_url'],
                     'midtrans_client_key' => $this->midtransService->clientKey(),
@@ -68,6 +75,7 @@ class CheckoutController extends Controller
             'customer_phone' => $order->customer_phone,
             'customer_email' => $order->customer_email,
             'customer_address' => $order->customer_address,
+            'discount_amount' => (float) $order->discount_amount,
             'shipping_courier' => $order->shipping_courier,
             'shipping_service' => $order->shipping_service,
             'shipping_etd' => $order->shipping_etd,
@@ -93,5 +101,18 @@ class CheckoutController extends Controller
             'updated_at' => optional($order->updated_at)?->toISOString(),
         ];
     }
-}
 
+    private function transformTradeInTransaction(TradeInTransaction $transaction): array
+    {
+        return [
+            'id' => (string) $transaction->id,
+            'transaction_number' => (string) $transaction->transaction_number,
+            'status' => (string) $transaction->status,
+            'trade_in_only' => (bool) $transaction->trade_in_only,
+            'estimated_amount' => (float) $transaction->estimated_amount,
+            'requested_product_name' => $transaction->requested_product_name,
+            'created_at' => optional($transaction->created_at)?->toISOString(),
+            'updated_at' => optional($transaction->updated_at)?->toISOString(),
+        ];
+    }
+}

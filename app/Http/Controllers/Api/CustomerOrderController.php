@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\TradeInTransaction;
+use App\Models\TradeInTransactionPhoto;
 use App\Models\User;
 use App\Services\CheckoutService;
 use App\Services\MidtransService;
+use App\Services\RajaOngkirService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +21,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 class CustomerOrderController extends Controller
@@ -40,9 +45,28 @@ class CustomerOrderController extends Controller
         5 => ['code' => 'completed', 'label' => 'Selesai'],
     ];
 
+    private const TRADE_IN_ONLY_PROGRESS_STAGES = [
+        1 => ['code' => 'trade_in_review', 'label' => 'Menunggu Review'],
+        2 => ['code' => 'trade_in_accepted', 'label' => 'Trade-In Diterima'],
+        3 => ['code' => 'awaiting_customer_shipment', 'label' => 'Kirim ke Toko / Datang ke Store'],
+        4 => ['code' => 'physical_verification', 'label' => 'Verifikasi Fisik'],
+        5 => ['code' => 'trade_in_completed', 'label' => 'Selesai'],
+    ];
+
+    private const TRADE_IN_ORDER_PROGRESS_STAGES = [
+        1 => ['code' => 'waiting_payment', 'label' => 'Menunggu Pembayaran'],
+        2 => ['code' => 'trade_in_review', 'label' => 'Menunggu Review Trade-In'],
+        3 => ['code' => 'trade_in_accepted', 'label' => 'Trade-In Diterima'],
+        4 => ['code' => 'awaiting_customer_shipment', 'label' => 'Kirim Produk Lama'],
+        5 => ['code' => 'physical_verification', 'label' => 'Verifikasi Fisik'],
+        6 => ['code' => 'order_shipped', 'label' => 'Produk Baru Dikirim'],
+        7 => ['code' => 'completed', 'label' => 'Selesai'],
+    ];
+
     public function __construct(
         private readonly MidtransService $midtransService,
-        private readonly CheckoutService $checkoutService
+        private readonly CheckoutService $checkoutService,
+        private readonly RajaOngkirService $rajaOngkirService
     )
     {
     }
@@ -53,39 +77,54 @@ class CustomerOrderController extends Controller
         $user = $request->user();
         $status = trim((string) $request->query('status', ''));
         $filter = $this->normalizeFilter((string) $request->query('filter', self::ORDER_FILTER_ALL));
+        $page = max(1, (int) $request->query('page', 1));
         $perPage = max(1, min((int) $request->query('per_page', 10), 50));
 
-        $ordersQuery = SalesOrder::query()
-            ->with(['items.product', 'invoice'])
-            ->where('user_id', $user->id);
-
-        if ($status !== '' && $status !== 'all') {
-            $ordersQuery->where('payment_status', $status);
-        }
-
-        $this->applyFilter($ordersQuery, $filter);
-
-        $orders = $ordersQuery
+        $orders = SalesOrder::query()
+            ->with(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct'])
+            ->where('user_id', $user->id)
             ->latest()
-            ->paginate($perPage)
-            ->appends([
-                'status' => $status,
-                'filter' => $filter,
-                'per_page' => $perPage,
-            ]);
+            ->get()
+            ->map(fn (SalesOrder $order): array => $this->transformOrder($this->syncPendingPayment($order)));
+
+        $standaloneTradeIns = TradeInTransaction::query()
+            ->with(['photos', 'requestedProduct'])
+            ->where('user_id', $user->id)
+            ->whereNull('sales_order_id')
+            ->latest()
+            ->get()
+            ->map(fn (TradeInTransaction $transaction): array => $this->transformStandaloneTradeIn($transaction));
+
+        $items = $orders
+            ->concat($standaloneTradeIns)
+            ->filter(function (array $row) use ($filter, $status): bool {
+                if (! $this->matchesFilter($row, $filter)) {
+                    return false;
+                }
+
+                if ($status !== '' && $status !== 'all') {
+                    return Str::lower((string) ($row['payment_status'] ?? 'pending')) === Str::lower($status);
+                }
+
+                return true;
+            })
+            ->sortByDesc(fn (array $row) => strtotime((string) ($row['created_at'] ?? '1970-01-01T00:00:00Z')))
+            ->values();
+
+        $total = $items->count();
+        $paged = $items
+            ->slice(($page - 1) * $perPage, $perPage)
+            ->values();
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar transaksi berhasil diambil.',
-            'data' => collect($orders->items())
-                ->map(fn (SalesOrder $order): array => $this->transformOrder($this->syncPendingPayment($order)))
-                ->values()
-                ->all(),
+            'data' => $paged->all(),
             'pagination' => [
-                'current_page' => $orders->currentPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
-                'last_page' => $orders->lastPage(),
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
             ],
             'filters' => [
                 'active' => $filter,
@@ -108,21 +147,39 @@ class CustomerOrderController extends Controller
             ->whereKey($orderId)
             ->first();
 
-        if (! $order) {
+        if ($order) {
+            $order = $this->syncPendingPayment($order);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail transaksi berhasil diambil.',
+                'data' => $this->transformOrder($order),
+                'status_catalog' => [
+                    'steps' => $this->progressStages(),
+                ],
+            ]);
+        }
+
+        $transaction = TradeInTransaction::query()
+            ->with(['photos', 'requestedProduct'])
+            ->where('user_id', $user->id)
+            ->whereNull('sales_order_id')
+            ->whereKey($orderId)
+            ->first();
+
+        if (! $transaction) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pesanan tidak ditemukan.',
             ], 404);
         }
 
-        $order = $this->syncPendingPayment($order);
-
         return response()->json([
             'success' => true,
-            'message' => 'Detail transaksi berhasil diambil.',
-            'data' => $this->transformOrder($order),
+            'message' => 'Detail transaksi trade-in berhasil diambil.',
+            'data' => $this->transformStandaloneTradeIn($transaction),
             'status_catalog' => [
-                'steps' => $this->progressStages(),
+                'steps' => $this->tradeInOnlyProgressStages(),
             ],
         ]);
     }
@@ -139,6 +196,19 @@ class CustomerOrderController extends Controller
             ->first();
 
         if (! $order) {
+            $transaction = TradeInTransaction::query()
+                ->where('user_id', $user->id)
+                ->whereNull('sales_order_id')
+                ->whereKey($orderId)
+                ->first();
+
+            if ($transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pengajuan trade-in saja tidak memerlukan pembayaran Midtrans.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Pesanan tidak ditemukan.',
@@ -229,6 +299,18 @@ class CustomerOrderController extends Controller
             });
 
             if (! $order) {
+                $transaction = TradeInTransaction::query()
+                    ->where('user_id', $user->id)
+                    ->whereNull('sales_order_id')
+                    ->whereKey($orderId)
+                    ->first();
+
+                if ($transaction) {
+                    throw ValidationException::withMessages([
+                        'order' => ['Pengajuan trade-in saja tidak memakai konfirmasi pesanan diterima.'],
+                    ]);
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Pesanan tidak ditemukan.',
@@ -252,22 +334,244 @@ class CustomerOrderController extends Controller
         }
     }
 
+    public function cancel(Request $request, string $orderId): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        try {
+            $transaction = DB::transaction(function () use ($user, $orderId): ?TradeInTransaction {
+                $transaction = TradeInTransaction::query()
+                    ->with(['photos', 'requestedProduct'])
+                    ->where('user_id', $user->id)
+                    ->whereNull('sales_order_id')
+                    ->whereKey($orderId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $transaction) {
+                    return null;
+                }
+
+                if ((string) $transaction->status === 'dibatalkan') {
+                    return $transaction;
+                }
+
+                if (! $this->canCancelStandaloneTradeIn($transaction)) {
+                    throw ValidationException::withMessages([
+                        'order' => ['Status trade-in saat ini tidak dapat dibatalkan.'],
+                    ]);
+                }
+
+                $transaction->status = 'dibatalkan';
+                $transaction->save();
+
+                return $transaction->fresh(['photos', 'requestedProduct']);
+            });
+
+            if (! $transaction) {
+                $order = SalesOrder::query()
+                    ->where('user_id', $user->id)
+                    ->whereKey($orderId)
+                    ->first();
+
+                if ($order) {
+                    throw ValidationException::withMessages([
+                        'order' => ['Pembatalan langsung saat ini hanya tersedia untuk pengajuan trade-in yang masih dalam tahap review atau sudah diterima.'],
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan tidak ditemukan.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengajuan trade-in berhasil dibatalkan.',
+                'data' => $this->transformStandaloneTradeIn($transaction),
+                'status_catalog' => [
+                    'steps' => $this->tradeInOnlyProgressStages(),
+                ],
+            ]);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?? 'Pembatalan trade-in gagal diproses.',
+                'errors' => $exception->errors(),
+            ], 422);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membatalkan pengajuan trade-in.',
+            ], 500);
+        }
+    }
+
+    public function submitTradeInFulfillment(Request $request, string $orderId): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        try {
+            $payload = $request->validate([
+                'fulfillment_method' => ['required', 'string', 'in:pengiriman,offline_store'],
+                'shipment_tracking_number' => ['nullable', 'string', 'max:120'],
+            ], [
+                'fulfillment_method.required' => 'Pilih metode pengiriman trade-in terlebih dahulu.',
+                'fulfillment_method.in' => 'Metode pengiriman trade-in tidak valid.',
+                'shipment_tracking_number.max' => 'Nomor resi maksimal 120 karakter.',
+            ]);
+
+            $method = Str::lower(trim((string) ($payload['fulfillment_method'] ?? '')));
+            $trackingNumber = trim((string) ($payload['shipment_tracking_number'] ?? ''));
+
+            if ($method === 'pengiriman' && $trackingNumber === '') {
+                throw ValidationException::withMessages([
+                    'shipment_tracking_number' => ['Isi nomor resi pengiriman device trade-in terlebih dahulu.'],
+                ]);
+            }
+
+            $result = DB::transaction(function () use ($user, $orderId, $method, $trackingNumber): array {
+                $transaction = TradeInTransaction::query()
+                    ->with(['photos', 'requestedProduct'])
+                    ->where('user_id', $user->id)
+                    ->whereNull('sales_order_id')
+                    ->whereKey($orderId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($transaction instanceof TradeInTransaction) {
+                    $this->applyCustomerTradeInFulfillment($transaction, $method, $trackingNumber);
+
+                    return [
+                        'order' => null,
+                        'transaction' => $transaction->fresh(['photos', 'requestedProduct']),
+                    ];
+                }
+
+                $order = SalesOrder::query()
+                    ->with(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct'])
+                    ->where('user_id', $user->id)
+                    ->whereKey($orderId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $order) {
+                    return [
+                        'order' => null,
+                        'transaction' => null,
+                    ];
+                }
+
+                /** @var TradeInTransaction|null $primaryTradeIn */
+                $primaryTradeIn = $order->tradeInTransactions->first();
+
+                if (! $primaryTradeIn) {
+                    throw ValidationException::withMessages([
+                        'order' => ['Pesanan ini belum memiliki transaksi trade-in yang bisa dikirim ke toko.'],
+                    ]);
+                }
+
+                $transaction = TradeInTransaction::query()
+                    ->whereKey($primaryTradeIn->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $transaction) {
+                    throw ValidationException::withMessages([
+                        'order' => ['Transaksi trade-in tidak ditemukan.'],
+                    ]);
+                }
+
+                $this->applyCustomerTradeInFulfillment($transaction, $method, $trackingNumber);
+
+                return [
+                    'order' => $order->fresh(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct']),
+                    'transaction' => null,
+                ];
+            });
+
+            /** @var SalesOrder|null $order */
+            $order = $result['order'];
+            /** @var TradeInTransaction|null $transaction */
+            $transaction = $result['transaction'];
+
+            if (! $order && ! $transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan tidak ditemukan.',
+                ], 404);
+            }
+
+            if ($order instanceof SalesOrder) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $method === 'pengiriman'
+                        ? 'Nomor resi trade-in berhasil dikirim. Status beralih ke verifikasi fisik.'
+                        : 'Pilihan datang ke store berhasil disimpan.',
+                    'data' => $this->transformOrder($order),
+                    'status_catalog' => [
+                        'steps' => $this->progressStages(),
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $method === 'pengiriman'
+                    ? 'Nomor resi trade-in berhasil dikirim. Status beralih ke verifikasi fisik.'
+                    : 'Pilihan datang ke store berhasil disimpan.',
+                'data' => $this->transformStandaloneTradeIn($transaction),
+                'status_catalog' => [
+                    'steps' => $this->tradeInOnlyProgressStages(),
+                ],
+            ]);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?? 'Data pengiriman trade-in tidak valid.',
+                'errors' => $exception->errors(),
+            ], 422);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan data pengiriman trade-in.',
+            ], 500);
+        }
+    }
+
     private function transformOrder(SalesOrder $order): array
     {
-        $statusMetadata = $this->resolveStatusMetadata($order);
+        $order->loadMissing(['items.product', 'invoice', 'tradeInTransactions.photos', 'tradeInTransactions.requestedProduct']);
+        $tradeInTransactions = $order->tradeInTransactions;
+        $hasTradeIn = $tradeInTransactions->isNotEmpty() || $order->items->contains(
+            fn (SalesOrderItem $item): bool => $this->hasTradeInMetadata(is_array($item->metadata) ? $item->metadata : [])
+        );
+        $statusMetadata = $this->resolveStatusMetadata($order, $tradeInTransactions->all());
         $tracking = $this->resolveTracking($order);
-        $firstItem = $order->items->first();
-        $paymentDetails = $this->resolvePaymentDetails($order);
+        $mappedItems = $this->transformOrderItems($order, $tradeInTransactions->all());
+        $firstItem = $mappedItems[0] ?? null;
+        $paymentDetails = $statusMetadata['requires_payment'] ? $this->resolvePaymentDetails($order) : null;
         $canConfirmReceived = $this->canConfirmReceived($order);
 
         return [
             'id' => (string) $order->id,
+            'kind' => 'sales_order',
             'order_number' => (string) $order->order_number,
+            'has_trade_in' => $hasTradeIn,
             'status' => (string) $order->status,
             'status_stage_code' => $statusMetadata['stage_code'],
             'status_step' => $statusMetadata['step'],
             'status_label' => $statusMetadata['label'],
             'status_group' => $statusMetadata['group'],
+            'progress_stages' => $statusMetadata['progress_stages'],
+            'requires_payment' => $statusMetadata['requires_payment'],
             'payment_status' => (string) ($order->payment_status ?? 'pending'),
             'payment_method' => $order->payment_method,
             'payment_method_label' => $this->resolvePaymentMethodLabel($order),
@@ -289,30 +593,13 @@ class CustomerOrderController extends Controller
             'customer_phone' => $order->customer_phone,
             'customer_email' => $order->customer_email,
             'customer_address' => $order->customer_address,
-            'items' => $order->items->map(function (SalesOrderItem $item): array {
-                return [
-                    'id' => (string) $item->id,
-                    'product_id' => (string) $item->product_id,
-                    'product_name' => (string) $item->product_name,
-                    'variant_name' => $item->variant_name,
-                    'variant_sku' => (string) $item->variant_sku,
-                    'quantity' => (int) $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
-                    'line_total' => (float) $item->line_total,
-                    'product_image' => $this->resolveOrderItemImage($item),
-                ];
-            })->values()->all(),
-            'primary_item' => $firstItem instanceof SalesOrderItem ? [
-                'id' => (string) $firstItem->id,
-                'product_id' => (string) $firstItem->product_id,
-                'product_name' => (string) $firstItem->product_name,
-                'variant_name' => $firstItem->variant_name,
-                'variant_sku' => (string) $firstItem->variant_sku,
-                'quantity' => (int) $firstItem->quantity,
-                'unit_price' => (float) $firstItem->unit_price,
-                'line_total' => (float) $firstItem->line_total,
-                'product_image' => $this->resolveOrderItemImage($firstItem),
-            ] : null,
+            'items' => $mappedItems,
+            'primary_item' => $firstItem,
+            'trade_in_transaction_number' => $tradeInTransactions->first()?->transaction_number,
+            'trade_in_status' => $tradeInTransactions->first()?->status,
+            'trade_in_fulfillment_method' => $tradeInTransactions->first()?->fulfillment_method,
+            'trade_in_shipment_tracking_number' => $tradeInTransactions->first()?->shipment_tracking_number,
+            'trade_in_store_origin' => $this->resolveTradeInStoreOrigin(),
             'created_at' => optional($order->created_at)?->toISOString(),
             'updated_at' => optional($order->updated_at)?->toISOString(),
         ];
@@ -328,6 +615,326 @@ class CustomerOrderController extends Controller
         }
 
         return in_array($paymentStatus, self::PAYMENT_SUCCESS_STATUSES, true);
+    }
+
+    /**
+     * @param array<int, TradeInTransaction> $tradeInTransactions
+     * @return array<int, array<string, mixed>>
+     */
+    private function transformOrderItems(SalesOrder $order, array $tradeInTransactions): array
+    {
+        $salesItems = $order->items->map(function (SalesOrderItem $item): array {
+                $metadata = is_array($item->metadata) ? $item->metadata : [];
+                $hasTradeIn = $this->hasTradeInMetadata($metadata);
+
+                return [
+                    'id' => (string) $item->id,
+                    'product_id' => (string) $item->product_id,
+                    'product_name' => (string) $item->product_name,
+                    'variant_name' => $item->variant_name,
+                    'variant_sku' => (string) $item->variant_sku,
+                    'quantity' => (int) $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'line_total' => (float) $item->line_total,
+                    'product_image' => $this->resolveOrderItemImage($item),
+                    'trade_in_enabled' => $hasTradeIn,
+                    'trade_in_transaction_id' => isset($metadata['trade_in_transaction_id'])
+                        ? (string) $metadata['trade_in_transaction_id']
+                        : null,
+                    'trade_in_estimated_amount' => null,
+                ];
+            })
+            ->values();
+
+        $mappedTradeInItems = collect($tradeInTransactions)
+            ->map(fn (TradeInTransaction $transaction): array => $this->buildTradeInItem($transaction))
+            ->values();
+
+        if ($salesItems->isEmpty()) {
+            return $mappedTradeInItems->all();
+        }
+
+        return $salesItems
+            ->concat($mappedTradeInItems)
+            ->values()
+            ->all();
+    }
+
+    private function transformStandaloneTradeIn(TradeInTransaction $transaction): array
+    {
+        $statusMetadata = $this->resolveStandaloneTradeInStatusMetadata($transaction);
+        $primaryItem = $this->buildTradeInItem($transaction);
+
+        return [
+            'id' => (string) $transaction->id,
+            'kind' => 'trade_in',
+            'order_number' => (string) $transaction->transaction_number,
+            'invoice_number' => (string) $transaction->transaction_number,
+            'has_trade_in' => true,
+            'status' => (string) $transaction->status,
+            'status_stage_code' => $statusMetadata['stage_code'],
+            'status_step' => $statusMetadata['step'],
+            'status_label' => $statusMetadata['label'],
+            'status_group' => $statusMetadata['group'],
+            'progress_stages' => $statusMetadata['progress_stages'],
+            'requires_payment' => false,
+            'payment_status' => 'not_required',
+            'payment_method' => 'trade_in_review',
+            'payment_method_label' => 'Tanpa Pembayaran',
+            'payment_details' => null,
+            'can_resume_payment' => false,
+            'can_confirm_received' => false,
+            'subtotal' => 0,
+            'shipping_cost' => 0,
+            'discount_amount' => 0,
+            'total_amount' => 0,
+            'shipping_courier' => null,
+            'shipping_service' => null,
+            'shipping_etd' => null,
+            'can_track_package' => false,
+            'tracking_number' => $transaction->shipment_tracking_number,
+            'tracking_url' => null,
+            'customer_name' => (string) $transaction->customer_name,
+            'customer_phone' => $transaction->customer_phone,
+            'customer_email' => $transaction->customer_email,
+            'customer_address' => $transaction->customer_address,
+            'items' => [$primaryItem],
+            'primary_item' => $primaryItem,
+            'trade_in_transaction_number' => (string) $transaction->transaction_number,
+            'trade_in_status' => (string) $transaction->status,
+            'trade_in_fulfillment_method' => (string) $transaction->fulfillment_method,
+            'trade_in_shipment_tracking_number' => $transaction->shipment_tracking_number,
+            'trade_in_store_origin' => $this->resolveTradeInStoreOrigin(),
+            'created_at' => optional($transaction->created_at)?->toISOString(),
+            'updated_at' => optional($transaction->updated_at)?->toISOString(),
+        ];
+    }
+
+    private function buildTradeInItem(TradeInTransaction $transaction): array
+    {
+        $productName = trim((string) ($transaction->requested_product_name ?? ''));
+        $deviceLabel = trim(collect([
+            $transaction->device_brand,
+            $transaction->device_model,
+            $transaction->device_variant,
+        ])->filter(fn ($value): bool => is_string($value) && trim($value) !== '')->implode(' '));
+
+        return [
+            'id' => (string) $transaction->id,
+            'product_id' => (string) ($transaction->requested_product_id ?? ''),
+            'product_name' => $productName !== '' ? $productName : ($deviceLabel !== '' ? $deviceLabel : 'Trade-In Device'),
+            'variant_name' => $transaction->device_variant,
+            'variant_sku' => (string) ($transaction->requested_product_variant_sku ?? ''),
+            'quantity' => 1,
+            'unit_price' => 0,
+            'line_total' => 0,
+            'product_image' => $this->resolveTradeInItemImage($transaction),
+            'trade_in_enabled' => true,
+            'trade_in_transaction_id' => (string) $transaction->id,
+            'trade_in_estimated_amount' => (float) ($transaction->offered_amount > 0 ? $transaction->offered_amount : $transaction->estimated_amount),
+        ];
+    }
+
+    private function resolveTradeInItemImage(TradeInTransaction $transaction): ?string
+    {
+        $requestedProduct = $transaction->relationLoaded('requestedProduct') ? $transaction->requestedProduct : null;
+
+        if ($requestedProduct instanceof Product) {
+            $photos = is_array($requestedProduct->photos) ? $requestedProduct->photos : [];
+
+            foreach ($photos as $photo) {
+                if (is_string($photo) && trim($photo) !== '') {
+                    return $this->normalizeAssetUrl($photo);
+                }
+
+                if (is_array($photo)) {
+                    $photoUrl = collect([
+                        $photo['url'] ?? null,
+                        $photo['image_url'] ?? null,
+                        $photo['src'] ?? null,
+                    ])->map(
+                        fn ($value): string => is_string($value) ? trim($value) : ''
+                    )->first(
+                        fn (string $value): bool => $value !== '',
+                        ''
+                    );
+
+                    if ($photoUrl !== '') {
+                        return $this->normalizeAssetUrl($photoUrl);
+                    }
+                }
+            }
+        }
+
+        return $this->resolveTradeInPhotoUrl($transaction->photos->first());
+    }
+
+    private function resolveTradeInPhotoUrl(?TradeInTransactionPhoto $photo): ?string
+    {
+        if (! $photo instanceof TradeInTransactionPhoto) {
+            return null;
+        }
+
+        $directUrl = trim((string) ($photo->image_url ?? ''));
+        if ($directUrl !== '') {
+            if (Str::startsWith($directUrl, ['http://', 'https://'])) {
+                return $directUrl;
+            }
+
+            if (Str::startsWith($directUrl, '/')) {
+                return url($directUrl);
+            }
+
+            return url('/' . ltrim($directUrl, '/'));
+        }
+
+        $path = trim((string) ($photo->image_path ?? ''));
+        if ($path === '') {
+            return null;
+        }
+
+        return url(Storage::disk('public')->url($path));
+    }
+
+    private function canCancelStandaloneTradeIn(TradeInTransaction $transaction): bool
+    {
+        $status = Str::lower(trim((string) $transaction->status));
+
+        return in_array($status, ['menunggu_review', 'disetujui'], true);
+    }
+
+    private function applyCustomerTradeInFulfillment(
+        TradeInTransaction $transaction,
+        string $method,
+        string $trackingNumber
+    ): void {
+        $currentStatus = Str::lower(trim((string) $transaction->status));
+
+        if (! in_array($currentStatus, ['disetujui', 'menunggu_pengiriman', 'kunjungan_toko', 'dikirim_pelanggan'], true)) {
+            throw ValidationException::withMessages([
+                'order' => ['Status trade-in saat ini belum bisa menerima data pengiriman dari customer.'],
+            ]);
+        }
+
+        if ($method === 'offline_store') {
+            $transaction->fulfillment_method = 'offline_store';
+            $transaction->shipment_courier = null;
+            $transaction->shipment_tracking_number = null;
+            $transaction->status = 'kunjungan_toko';
+            $transaction->save();
+
+            return;
+        }
+
+        $transaction->fulfillment_method = 'pengiriman';
+        $transaction->shipment_tracking_number = $trackingNumber !== '' ? $trackingNumber : null;
+        $transaction->status = 'dikirim_pelanggan';
+        $transaction->save();
+    }
+
+    private function resolveTradeInStoreOrigin(): ?array
+    {
+        static $cached = false;
+        static $origin = null;
+
+        if ($cached) {
+            return $origin;
+        }
+
+        $cached = true;
+
+        try {
+            $payload = $this->rajaOngkirService->getShippingOrigin();
+        } catch (RuntimeException) {
+            $origin = null;
+            return null;
+        }
+
+        $fullAddress = trim((string) ($payload['full_address'] ?? ''));
+        $recipientName = trim((string) ($payload['recipient_name'] ?? ''));
+        $recipientPhone = trim((string) ($payload['recipient_phone'] ?? ''));
+        $label = trim((string) ($payload['label'] ?? ''));
+        $locationNote = trim((string) ($payload['location_note'] ?? ''));
+
+        if ($fullAddress === '' && $recipientName === '' && $recipientPhone === '' && $label === '') {
+            $origin = null;
+            return null;
+        }
+
+        $origin = [
+            'label' => $label !== '' ? $label : null,
+            'recipient_name' => $recipientName !== '' ? $recipientName : null,
+            'recipient_phone' => $recipientPhone !== '' ? $recipientPhone : null,
+            'full_address' => $fullAddress !== '' ? $fullAddress : null,
+            'location_note' => $locationNote !== '' ? $locationNote : null,
+        ];
+
+        return $origin;
+    }
+
+    private function resolveStandaloneTradeInStatusMetadata(TradeInTransaction $transaction): array
+    {
+        $status = Str::lower(trim((string) $transaction->status));
+
+        if (in_array($status, ['dibatalkan', 'ditolak'], true)) {
+            return [
+                'stage_code' => 'cancelled',
+                'step' => 1,
+                'label' => $status === 'ditolak' ? 'Trade-In Ditolak' : 'Dibatalkan',
+                'group' => self::ORDER_FILTER_CANCELLED,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ];
+        }
+
+        return match ($status) {
+            'disetujui' => [
+                'stage_code' => 'trade_in_accepted',
+                'step' => 2,
+                'label' => 'Trade-In Diterima',
+                'group' => self::ORDER_FILTER_ONGOING,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ],
+            'menunggu_pengiriman', 'kunjungan_toko' => [
+                'stage_code' => 'awaiting_customer_shipment',
+                'step' => 3,
+                'label' => $status === 'kunjungan_toko' ? 'Jadwalkan Kunjungan ke Store' : 'Kirim Produk ke Toko',
+                'group' => self::ORDER_FILTER_ONGOING,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ],
+            'dikirim_pelanggan' => [
+                'stage_code' => 'physical_verification',
+                'step' => 4,
+                'label' => 'Verifikasi Fisik Produk',
+                'group' => self::ORDER_FILTER_ONGOING,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ],
+            'selesai' => [
+                'stage_code' => 'trade_in_completed',
+                'step' => 5,
+                'label' => 'Trade-In Selesai',
+                'group' => self::ORDER_FILTER_SUCCESS,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ],
+            default => [
+                'stage_code' => 'trade_in_review',
+                'step' => 1,
+                'label' => 'Menunggu Review Trade-In',
+                'group' => self::ORDER_FILTER_ONGOING,
+                'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $this->tradeInOnlyProgressStages(),
+            ],
+        };
     }
 
     private function syncPendingPayment(SalesOrder $order): SalesOrder
@@ -386,13 +993,17 @@ class CustomerOrderController extends Controller
      *   step: int,
      *   label: string,
      *   group: string,
-     *   can_track_package: bool
+     *   can_track_package: bool,
+     *   requires_payment: bool,
+     *   progress_stages: array<int, array{step: int, code: string, label: string}>
      * }
      */
-    private function resolveStatusMetadata(SalesOrder $order): array
+    private function resolveStatusMetadata(SalesOrder $order, array $tradeInTransactions = []): array
     {
         $status = Str::lower(trim((string) $order->status));
         $paymentStatus = Str::lower(trim((string) ($order->payment_status ?? 'pending')));
+        $hasTradeIn = count($tradeInTransactions) > 0;
+        $progressStages = $hasTradeIn ? $this->tradeInOrderProgressStages() : $this->progressStages();
 
         $isCancelled = $status === 'dibatalkan' || in_array($paymentStatus, self::PAYMENT_FAILED_STATUSES, true);
         if ($isCancelled) {
@@ -402,18 +1013,112 @@ class CustomerOrderController extends Controller
                 'label' => 'Dibatalkan',
                 'group' => self::ORDER_FILTER_CANCELLED,
                 'can_track_package' => false,
+                'requires_payment' => ! $hasTradeIn,
+                'progress_stages' => $progressStages,
             ];
+        }
+
+        if ($hasTradeIn) {
+            $primaryTradeIn = $tradeInTransactions[0] ?? null;
+            $tradeInStatus = $primaryTradeIn instanceof TradeInTransaction
+                ? Str::lower(trim((string) $primaryTradeIn->status))
+                : 'menunggu_review';
+
+            if (in_array($paymentStatus, self::PAYMENT_PENDING_STATUSES, true)) {
+                return [
+                    'stage_code' => 'waiting_payment',
+                    'step' => 1,
+                    'label' => 'Menunggu Pembayaran',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => true,
+                    'progress_stages' => $progressStages,
+                ];
+            }
+
+            if ($status === 'selesai') {
+                return [
+                    'stage_code' => 'completed',
+                    'step' => 7,
+                    'label' => 'Selesai',
+                    'group' => self::ORDER_FILTER_SUCCESS,
+                    'can_track_package' => true,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ];
+            }
+
+            if (in_array($status, ['dikirim', 'terkirim'], true)) {
+                return [
+                    'stage_code' => 'order_shipped',
+                    'step' => $status === 'terkirim' ? 7 : 6,
+                    'label' => $status === 'terkirim' ? 'Pesanan Terkirim' : 'Produk Baru Dikirim',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => true,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ];
+            }
+
+            return match ($tradeInStatus) {
+                'disetujui' => [
+                    'stage_code' => 'trade_in_accepted',
+                    'step' => 3,
+                    'label' => 'Trade-In Diterima',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ],
+                'menunggu_pengiriman', 'kunjungan_toko' => [
+                    'stage_code' => 'awaiting_customer_shipment',
+                    'step' => 4,
+                    'label' => $tradeInStatus === 'kunjungan_toko' ? 'Jadwalkan Kunjungan ke Store' : 'Kirim Produk Lama',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ],
+                'dikirim_pelanggan' => [
+                    'stage_code' => 'physical_verification',
+                    'step' => 5,
+                    'label' => 'Verifikasi Fisik Trade-In',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ],
+                'selesai' => [
+                    'stage_code' => 'order_shipped',
+                    'step' => 6,
+                    'label' => 'Produk Baru Siap Dikirim',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ],
+                default => [
+                    'stage_code' => 'trade_in_review',
+                    'step' => 2,
+                    'label' => 'Menunggu Review Trade-In',
+                    'group' => self::ORDER_FILTER_ONGOING,
+                    'can_track_package' => false,
+                    'requires_payment' => false,
+                    'progress_stages' => $progressStages,
+                ],
+            };
         }
 
         if ($status === 'selesai') {
             $stage = self::PROGRESS_STAGES[5];
-
             return [
                 'stage_code' => (string) $stage['code'],
                 'step' => 5,
                 'label' => (string) $stage['label'],
                 'group' => self::ORDER_FILTER_SUCCESS,
                 'can_track_package' => true,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -426,6 +1131,8 @@ class CustomerOrderController extends Controller
                 'label' => (string) $stage['label'],
                 'group' => self::ORDER_FILTER_ONGOING,
                 'can_track_package' => true,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -438,6 +1145,8 @@ class CustomerOrderController extends Controller
                 'label' => (string) $stage['label'],
                 'group' => self::ORDER_FILTER_ONGOING,
                 'can_track_package' => true,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -450,6 +1159,8 @@ class CustomerOrderController extends Controller
                 'label' => 'Diproses',
                 'group' => self::ORDER_FILTER_ONGOING,
                 'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -462,6 +1173,8 @@ class CustomerOrderController extends Controller
                 'label' => (string) $stage['label'],
                 'group' => self::ORDER_FILTER_ONGOING,
                 'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -474,6 +1187,8 @@ class CustomerOrderController extends Controller
                 'label' => (string) $stage['label'],
                 'group' => self::ORDER_FILTER_ONGOING,
                 'can_track_package' => false,
+                'requires_payment' => false,
+                'progress_stages' => $progressStages,
             ];
         }
 
@@ -485,6 +1200,8 @@ class CustomerOrderController extends Controller
             'label' => (string) $stage['label'],
             'group' => self::ORDER_FILTER_ONGOING,
             'can_track_package' => false,
+            'requires_payment' => true,
+            'progress_stages' => $progressStages,
         ];
     }
 
@@ -501,6 +1218,7 @@ class CustomerOrderController extends Controller
 
         return match ($normalized) {
             'midtrans_snap' => 'Midtrans Snap',
+            'trade_in_review' => 'Tanpa Pembayaran',
             'bank_transfer' => 'Transfer Bank',
             'credit_card' => 'Kartu Kredit',
             'debit_card' => 'Kartu Debit',
@@ -919,6 +1637,16 @@ class CustomerOrderController extends Controller
         ];
     }
 
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function hasTradeInMetadata(array $metadata): bool
+    {
+        $transactionId = trim((string) ($metadata['trade_in_transaction_id'] ?? ''));
+
+        return (bool) ($metadata['trade_in_enabled'] ?? false) || $transactionId !== '';
+    }
+
     private function resolveOrderItemImage(SalesOrderItem $item): ?string
     {
         $metadata = is_array($item->metadata) ? $item->metadata : [];
@@ -997,6 +1725,51 @@ class CustomerOrderController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<int, array{step: int, code: string, label: string}>
+     */
+    private function tradeInOnlyProgressStages(): array
+    {
+        return collect(self::TRADE_IN_ONLY_PROGRESS_STAGES)
+            ->map(fn (array $stage, int $step): array => [
+                'step' => $step,
+                'code' => (string) ($stage['code'] ?? ''),
+                'label' => (string) ($stage['label'] ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{step: int, code: string, label: string}>
+     */
+    private function tradeInOrderProgressStages(): array
+    {
+        return collect(self::TRADE_IN_ORDER_PROGRESS_STAGES)
+            ->map(fn (array $stage, int $step): array => [
+                'step' => $step,
+                'code' => (string) ($stage['code'] ?? ''),
+                'label' => (string) ($stage['label'] ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function matchesFilter(array $row, string $filter): bool
+    {
+        $statusGroup = Str::lower(trim((string) ($row['status_group'] ?? self::ORDER_FILTER_ONGOING)));
+
+        return match ($filter) {
+            self::ORDER_FILTER_SUCCESS => $statusGroup === self::ORDER_FILTER_SUCCESS,
+            self::ORDER_FILTER_CANCELLED => $statusGroup === self::ORDER_FILTER_CANCELLED,
+            self::ORDER_FILTER_ONGOING => $statusGroup === self::ORDER_FILTER_ONGOING,
+            default => true,
+        };
     }
 
     /**

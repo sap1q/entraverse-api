@@ -224,6 +224,83 @@ it('imports product image using fallback image fields from jurnal payload', func
     expect(data_get($product?->photos, '0.is_primary'))->toBeTrue();
 });
 
+it('preserves admin marketplace state when pulling product from jurnal', function (): void {
+    $product = Product::factory()->create([
+        'jurnal_id' => 'jrnl-locked-1',
+        'name' => 'Locked Local Product',
+        'spu' => 'LOCK-001',
+        'stock' => 8,
+        'inventory' => [
+            'price' => 999000,
+            'cost' => 650000,
+            'total_stock' => 8,
+            'weight' => 777,
+        ],
+        'variant_pricing' => [
+            [
+                'sku' => 'LOCK-001-A',
+                'label' => 'Default',
+                'stock' => 8,
+                'warehouse' => 'Gudang Utama',
+                'warehouse_stock' => ['Gudang Utama' => 8],
+                'offline_price' => 999000,
+                'entraverse_price' => 1049000,
+                'tiktok_price' => 1099000,
+                'shopee_price' => 1079000,
+                'sku_seller' => 'SELLER-LOCK-001',
+            ],
+        ],
+        'jurnal_metadata' => [
+            'local_marketplace_state' => [
+                'locked' => true,
+                'source' => 'admin_edit',
+            ],
+        ],
+    ]);
+
+    $this->mekariMock
+        ->shouldReceive('request')
+        ->once()
+        ->with('GET', '/public/jurnal/api/v1/products', [
+            'query' => [
+                'page' => 1,
+                'per_page' => 1,
+            ],
+        ])
+        ->andReturn([
+            'products' => [
+                [
+                    'id' => 'jrnl-locked-1',
+                    'name' => 'Locked Local Product',
+                    'product_code' => 'LOCK-001',
+                    'quantity_available' => 30,
+                    'sell_price_per_unit' => 250000,
+                    'buy_price_per_unit' => 180000,
+                    'weight' => 1200,
+                ],
+            ],
+            'total_pages' => 1,
+        ]);
+
+    $result = $this->service->importProductsFromJurnal([
+        'page' => 1,
+        'per_page' => 1,
+    ], 1);
+
+    expect($result['updated'])->toBe(1);
+
+    $fresh = $product->fresh();
+
+    expect(data_get($fresh?->inventory, 'price'))->toBe(999000);
+    expect(data_get($fresh?->inventory, 'total_stock'))->toBe(8);
+    expect((float) data_get($fresh?->inventory, 'jurnal_price'))->toBe(250000.0);
+    expect(data_get($fresh?->inventory, 'jurnal_total_stock'))->toBe(30);
+    expect(data_get($fresh?->variant_pricing, '0.entraverse_price'))->toBe(1049000);
+    expect(data_get($fresh?->variant_pricing, '0.tiktok_price'))->toBe(1099000);
+    expect(data_get($fresh?->variant_pricing, '0.sku_seller'))->toBe('SELLER-LOCK-001');
+    expect(data_get($fresh?->jurnal_metadata, 'last_pull_snapshot.preserved_local_marketplace_state'))->toBeTrue();
+});
+
 it('syncs by updating existing remote product found by custom id', function (): void {
     Event::fake([ProductSyncedToJurnal::class]);
 

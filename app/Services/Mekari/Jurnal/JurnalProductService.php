@@ -504,6 +504,8 @@ class JurnalProductService
         $safeCategory = $categoryName !== '' ? $categoryName : 'Uncategorized';
 
         $existingInventory = is_array($product->inventory) ? $product->inventory : [];
+        $existingJurnalMetadata = is_array($product->jurnal_metadata) ? $product->jurnal_metadata : [];
+        $preserveLocalMarketplaceState = $this->shouldPreserveLocalMarketplaceState($product);
         $imageUrl = $this->resolveRemoteImageUrl($remote);
         $photos = $imageUrl !== ''
             ? [[
@@ -513,42 +515,48 @@ class JurnalProductService
             ]]
             : (is_array($product->photos) ? $product->photos : []);
 
-        $variantPricing = [[
-            'sku' => $normalizedSpu,
-            'label' => 'Default',
-            'stock' => $quantity,
-            'warehouse' => 'Gudang Utama',
-            'warehouse_stock' => [
-                'Gudang Utama' => $quantity,
+        $variantPricing = $this->resolveImportedVariantPricing(
+            $product,
+            $normalizedSpu,
+            $quantity,
+            $sellPrice,
+            $buyPrice,
+            $preserveLocalMarketplaceState
+        );
+        $inventory = $this->resolveImportedInventory(
+            $existingInventory,
+            $sellPrice,
+            $buyPrice,
+            $quantity,
+            $weight,
+            $preserveLocalMarketplaceState
+        );
+        $jurnalMetadata = [
+            ...$existingJurnalMetadata,
+            'product' => $remote,
+            'imported_at' => now()->toISOString(),
+            'last_pull_snapshot' => [
+                'sell_price_per_unit' => $sellPrice,
+                'buy_price_per_unit' => $buyPrice,
+                'quantity_available' => $quantity,
+                'weight' => $weight,
+                'preserved_local_marketplace_state' => $preserveLocalMarketplaceState,
             ],
-            'offline_price' => $sellPrice,
-            'entraverse_price' => $sellPrice,
-            'purchase_price' => $buyPrice,
-            'purchase_price_idr' => $buyPrice,
-        ]];
+        ];
 
         $product->fill([
             'name' => $safeName,
             'category' => $safeCategory,
             'description' => (string) Arr::get($remote, 'description', ''),
             'spu' => $normalizedSpu,
-            'stock' => $quantity,
-            'inventory' => [
-                ...$existingInventory,
-                'price' => $sellPrice,
-                'cost' => $buyPrice,
-                'total_stock' => $quantity,
-                'weight' => $weight,
-            ],
+            'stock' => $preserveLocalMarketplaceState ? (int) ($product->stock ?? $quantity) : $quantity,
+            'inventory' => $inventory,
             'photos' => $photos,
             'variants' => $this->normalizeVariantsWithDefaults($product->variants),
             'variant_pricing' => $variantPricing,
             'product_status' => $productStatus,
             'jurnal_id' => $jurnalId,
-            'jurnal_metadata' => [
-                'product' => $remote,
-                'imported_at' => now()->toISOString(),
-            ],
+            'jurnal_metadata' => $jurnalMetadata,
             'last_synced_at' => now(),
             'mekari_status' => [
                 ...($product->mekari_status ?? []),
@@ -561,6 +569,107 @@ class JurnalProductService
         $product->save();
 
         return $action;
+    }
+
+    private function shouldPreserveLocalMarketplaceState(Product $product): bool
+    {
+        $jurnalMetadata = is_array($product->jurnal_metadata) ? $product->jurnal_metadata : [];
+        $localState = is_array($jurnalMetadata['local_marketplace_state'] ?? null)
+            ? $jurnalMetadata['local_marketplace_state']
+            : [];
+
+        if ((bool) ($localState['locked'] ?? false)) {
+            return true;
+        }
+
+        $variantPricing = is_array($product->variant_pricing) ? $product->variant_pricing : [];
+        if (count($variantPricing) > 1) {
+            return true;
+        }
+
+        foreach ($variantPricing as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            if (trim((string) ($row['sku_seller'] ?? '')) !== '') {
+                return true;
+            }
+
+            foreach (['tiktok_price', 'shopee_price', 'tokopedia_price'] as $priceField) {
+                if (array_key_exists($priceField, $row) && (float) ($row[$priceField] ?? 0) > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function resolveImportedVariantPricing(
+        Product $product,
+        string $normalizedSpu,
+        int $quantity,
+        float $sellPrice,
+        float $buyPrice,
+        bool $preserveLocalMarketplaceState
+    ): array {
+        $existingVariantPricing = is_array($product->variant_pricing)
+            ? array_values(array_filter($product->variant_pricing, 'is_array'))
+            : [];
+
+        if ($preserveLocalMarketplaceState && $existingVariantPricing !== []) {
+            return $existingVariantPricing;
+        }
+
+        return [[
+            'sku' => $normalizedSpu,
+            'label' => 'Default',
+            'stock' => $quantity,
+            'warehouse' => 'Gudang Utama',
+            'warehouse_stock' => [
+                'Gudang Utama' => $quantity,
+            ],
+            'offline_price' => $sellPrice,
+            'entraverse_price' => $sellPrice,
+            'purchase_price' => $buyPrice,
+            'purchase_price_idr' => $buyPrice,
+        ]];
+    }
+
+    private function resolveImportedInventory(
+        array $existingInventory,
+        float $sellPrice,
+        float $buyPrice,
+        int $quantity,
+        int $weight,
+        bool $preserveLocalMarketplaceState
+    ): array {
+        $snapshotTimestamp = now()->toISOString();
+
+        if ($preserveLocalMarketplaceState) {
+            return [
+                ...$existingInventory,
+                'jurnal_price' => $sellPrice,
+                'jurnal_cost' => $buyPrice,
+                'jurnal_total_stock' => $quantity,
+                'jurnal_weight' => $weight,
+                'last_jurnal_pull_at' => $snapshotTimestamp,
+            ];
+        }
+
+        return [
+            ...$existingInventory,
+            'price' => $sellPrice,
+            'cost' => $buyPrice,
+            'total_stock' => $quantity,
+            'weight' => $weight,
+            'jurnal_price' => $sellPrice,
+            'jurnal_cost' => $buyPrice,
+            'jurnal_total_stock' => $quantity,
+            'jurnal_weight' => $weight,
+            'last_jurnal_pull_at' => $snapshotTimestamp,
+        ];
     }
 
     /**

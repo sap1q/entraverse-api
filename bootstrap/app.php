@@ -24,8 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/user/addresses/*',
             'api/user',
             'api/user/*',
+            'api/orders',
+            'api/orders/*',
             'api/shipping/*',
             'api/checkout/*',
+            'api/trade-in/*',
             'api/payment/*',
             // Backward-compatible API paths still used by some admin clients.
             'api/products/*',
@@ -33,8 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'v1/*',
             'user',
             'user/*',
+            'orders',
+            'orders/*',
             'shipping/*',
             'checkout/*',
+            'trade-in/*',
             'payment/*',
         ]);
 
